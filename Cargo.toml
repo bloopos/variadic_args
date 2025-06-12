@@ -1,0 +1,10 @@
+[package]
+name = "variadic_args"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+
+[features]
+default = []
+no_std = []
