@@ -1,12 +1,13 @@
-#[cfg(feature = "no_std")]
+#[cfg(no_std)]
 use alloc::alloc;
-#[cfg(feature = "no_std")]
+
+#[cfg(no_std)]
 use core::{
     any::Any,
     ptr::NonNull
 };
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(not(no_std))]
 use std::{
     alloc,
     any::Any,

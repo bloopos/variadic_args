@@ -1,21 +1,21 @@
-use crate::VariantHandle;
-
-#[cfg(feature = "no_std")]
-use
-{
-    core::{
-        mem::ManuallyDrop,
-        ptr::{slice_from_raw_parts, slice_from_raw_parts_mut},
-        slice::{Iter, IterMut}
-    },
-    alloc::{
-        borrow::Cow,
-        boxed::Box,
-        vec::IntoIter as IntoVecIter
-    }
+#[cfg(no_std)]
+use alloc::{
+    borrow::Cow,
+    boxed::Box,
+    vec::IntoIter as IntoVecIter
 };
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(no_std)]
+use core::{
+    mem::ManuallyDrop,
+    ptr::{slice_from_raw_parts, slice_from_raw_parts_mut},
+    slice::{Iter, IterMut}
+};
+
+use crate::VariantHandle;
+
+
+#[cfg(not(no_std))]
 use std::{
     borrow::Cow,
     mem::ManuallyDrop,

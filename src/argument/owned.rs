@@ -1,13 +1,14 @@
-#[cfg(feature = "no_std")]
+#[cfg(no_std)]
 use alloc::borrow;
-#[cfg(feature = "no_std")]
+
+#[cfg(no_std)]
 use core::{
     any::Any,
     mem,
     ops
 };
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(not(no_std))]
 use std::{
     any::Any,
     borrow,

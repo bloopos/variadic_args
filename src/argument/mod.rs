@@ -9,15 +9,16 @@ mod owned;
 // Unsure what to do about it.
 //mod borrowed_arg;
 
-#[cfg(feature = "no_std")]
+#[cfg(no_std)]
 use alloc::borrow::Cow;
-#[cfg(feature = "no_std")]
+
+#[cfg(no_std)]
 use core::{
     any::Any,
     ops::Deref
 };
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(not(no_std))]
 use std::{
     any::Any,
     borrow::Cow,

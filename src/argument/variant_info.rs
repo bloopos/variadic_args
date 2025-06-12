@@ -1,7 +1,7 @@
-#[cfg(feature = "no_std")]
+#[cfg(no_std)]
 use core::any::Any;
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(not(no_std))]
 use std::any::Any;
 
 use super::owned::OwnedArgument;
