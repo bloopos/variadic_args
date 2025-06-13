@@ -1,5 +1,5 @@
 #[cfg(no_std)]
-use alloc::borrow;
+use alloc::{borrow, boxed::Box};
 
 #[cfg(no_std)]
 use core::{
@@ -19,6 +19,8 @@ use std::{
 use super::boxed::Boxed;
 use super::inlined::Inlined;
 use super::variant_info::{PointerInfo, VariantHandle};
+
+use super::boxed_argument::BoxedArgument;
 
 pub struct OwnedArgument
 {
@@ -45,20 +47,13 @@ impl Drop for OwnedArgument
     #[inline(never)]
     fn drop(&mut self)
     {
+        let raw_pointer = &raw mut *self;
+        
+        let _ =
         unsafe
         {
-            if self.is_inlined()
-            {
-                self.store
-                    .assume_init_drop();
-            }
-            else
-            {
-                let boxed = (&raw mut self.store).cast::<Boxed>();
-                
-                boxed.drop_in_place();
-            }
-        }
+            BoxedArgument::from_owned(raw_pointer)
+        };
     }
 }
 
@@ -132,11 +127,15 @@ impl OwnedArgument
                 store: mem::MaybeUninit::zeroed()
             };
             
-            let boxed = Boxed::new(item);
+            let boxed : Box<dyn VariantHandle> = Box::new(item);
             
             unsafe
             {
-                out.store.as_mut_ptr().cast::<Boxed>().write(boxed)
+                out
+                .store
+                .as_mut_ptr()
+                .cast::<Box<dyn VariantHandle>>()
+                .write(boxed)
             };
             
             out

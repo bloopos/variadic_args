@@ -43,34 +43,20 @@ impl Inlined
         
         let raw_pointer = store.as_mut_ptr();
         
-        if size_of::<T>() > 0
-        {
-            let item_metadata = &raw const item as *const dyn VariantHandle;
-            
-            unsafe
-            {
-                let item_metadata =
-                (&raw const item_metadata)
-                .cast::<u8>();
-                
-                raw_pointer.copy_from_nonoverlapping(item_metadata, size_of::<&str>());
-                
-                raw_pointer
-                .cast::<T>()
-                .write_unaligned(item);
-            }
-        }
-        else
-        {
-            let metadata =
-            core::ptr::dangling_mut::<T>() as *mut _ as *mut dyn VariantHandle;
-            
-            unsafe
-            {
-                raw_pointer.copy_from_nonoverlapping(metadata.cast(), size_of::<&str>());
-            }
-        }
+        let item_metadata = &raw const item as *const dyn VariantHandle;
         
+        unsafe
+        {
+            let item_metadata =
+            (&raw const item_metadata)
+            .cast::<u8>();
+            
+            raw_pointer.copy_from_nonoverlapping(item_metadata, size_of::<&str>());
+            
+            raw_pointer
+            .cast::<T>()
+            .write_unaligned(item);
+        }
         
         Self
         {
