@@ -7,7 +7,7 @@ mod argument;
 mod arguments;
 
 pub use argument::{OwnedArgument, Argument, ArgumentKind};
-pub use arguments::Arguments;
+pub use arguments::{Arguments, ArgumentsBuilder};
 //pub mod borrowed_arg;
 
 #[cfg(test)]
