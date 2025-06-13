@@ -104,7 +104,7 @@ impl OwnedArgument
             //
             // That way, the unregistered read, from is_inlined,
             // is still valid.
-            let mut out =
+            let mut output =
             Self
             {
                 store: Inlined::uninit_allocated()
@@ -114,24 +114,27 @@ impl OwnedArgument
             
             let raw_pointer = Box::into_raw(boxed);
             
+            let write_pointer : *mut *mut dyn VariantHandle =
+            output.store.as_mut_ptr().cast();
+            
             unsafe
             {
-                out
-                .store
-                .as_mut_ptr()
-                .cast::<*mut dyn VariantHandle>()
-                .write(raw_pointer)
-            };
+                write_pointer.write(raw_pointer);
+            }
             
-            out
+            output
         }
     }
     
     pub(crate) fn owned_discriminant(&self) -> Discriminant
     {
-        let inlined = self.is_inlined();
+        let is_inlined =
+        unsafe {
+            self.inner_inlined()
+                .is_inlined()
+        };
         
-        Discriminant::from_owned(inlined)
+        Discriminant::from_owned(is_inlined)
     }
     
     pub(crate) fn discriminant(&self) -> Discriminant
@@ -139,8 +142,7 @@ impl OwnedArgument
         let storage_info =
         unsafe
         {
-            self.store
-                .assume_init_ref()
+            self.inner_inlined()
                 .storage_info()
         };
         
@@ -149,12 +151,12 @@ impl OwnedArgument
     
     /// Checks if the storage is inlined or not.
     #[inline(always)]
+    #[cfg(test)]
     pub(crate) fn is_inlined(&self) -> bool
     {
         unsafe
         {
-            self.store
-                .assume_init_ref()
+            self.inner_inlined()
                 .is_inlined()
         }
     }
@@ -199,10 +201,15 @@ impl OwnedArgument
     
     pub(crate) fn raw_ref<'a>(&'a self) -> &'a dyn VariantHandle
     {
+        let raw_pointer =
         unsafe
         {
-            let pointer : *const dyn VariantHandle = self.raw_pointer().cast_const();
-            &*pointer
+            self.raw_pointer()
+        };
+        
+        unsafe
+        {
+            &*raw_pointer.cast_const()
         }
     }
     
@@ -238,24 +245,28 @@ impl OwnedArgument
         {
             BoxedArgument::Allocated(a) =>
             {
-                let mut store : mem::MaybeUninit<T> =
-                mem::MaybeUninit::uninit();
-                
                 let raw_pointer = Box::into_raw(a);
+                
+                let output =
+                {
+                    let pointer : *mut T =
+                    raw_pointer.cast();
+                    
+                    unsafe
+                    {
+                        pointer.read_unaligned()
+                    }
+                };
                 
                 let layout = alloc::Layout::new::<T>();
                 
                 unsafe
                 {
-                    store
-                    .as_mut_ptr()
-                    .cast::<u8>()
-                    .copy_from_nonoverlapping(raw_pointer.cast(), size_of::<T>());
-                    
-                    alloc::dealloc(raw_pointer.cast(), layout);
-                    
-                    store.assume_init()
+                    alloc::dealloc(raw_pointer.cast::<u8>(),
+                                   layout);
                 }
+                
+                output
             }
             BoxedArgument::Inlined(i) =>
             {
