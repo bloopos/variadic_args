@@ -177,14 +177,6 @@ impl Argument<'_>
         }
     }
     
-    fn
-    is_type<T>(&self) -> bool
-    where
-        T: Any + Clone
-    {
-        self.deref().is::<T>()
-    }
-    
     pub fn downcast_cloned<T>(&self) -> Option<T>
     where
         T: Any + Clone

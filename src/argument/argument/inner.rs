@@ -38,7 +38,7 @@ impl InnerArgument<'_>
     {
         let owned = ManuallyDrop::new(item);
         
-        let mut output = Self { owned };
+        let output = Self { owned };
         
         output
     }
