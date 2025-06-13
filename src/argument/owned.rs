@@ -58,7 +58,7 @@ impl Drop for OwnedArgument
     }
 }
 
-impl PointerInfo for OwnedArgument
+unsafe impl PointerInfo for OwnedArgument
 {
     #[inline(never)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle

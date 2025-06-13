@@ -12,7 +12,7 @@ const INLINE_STORE : usize = size_of::<&str>() + 1;
 #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
 pub(super) struct Inlined
 {
-    pub store: [u8; INLINE_STORE]
+    store: [u8; INLINE_STORE]
 }
 
 impl Drop for Inlined
@@ -24,8 +24,8 @@ impl Drop for Inlined
         
         unsafe
         {
-            pointer.drop_in_place()
-        };
+            pointer.drop_in_place();
+        }
     }
 }
 
@@ -45,13 +45,13 @@ impl Inlined
         
         let item_metadata = &raw const item as *const dyn VariantHandle;
         
+        let raw_metadata =
+        (&raw const item_metadata)
+        .cast::<u8>();
+        
         unsafe
         {
-            let item_metadata =
-            (&raw const item_metadata)
-            .cast::<u8>();
-            
-            raw_pointer.copy_from_nonoverlapping(item_metadata, size_of::<&str>());
+            raw_pointer.copy_from_nonoverlapping(raw_metadata, size_of::<&str>());
             
             raw_pointer
             .cast::<T>()
@@ -77,7 +77,7 @@ impl Inlined
     }
 }
 
-impl PointerInfo for Inlined
+unsafe impl PointerInfo for Inlined
 {
     #[inline(never)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle

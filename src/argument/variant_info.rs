@@ -14,7 +14,7 @@ use super::owned::OwnedArgument;
 /// # Safety
 /// The only safety rule to follow is that both metadata and raw_pointer guarantee
 /// that the data points to a valid dyn object.
-pub(super) trait PointerInfo
+pub(super) unsafe trait PointerInfo
 {
     /// Provides metadata information about the pointer itself.
     ///

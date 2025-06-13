@@ -6,15 +6,21 @@ use super::{
     inlined::Inlined
 };
 
+/// A raw alias for the contents inside an owned argument.
 pub enum BoxedArgument
 {
+    /// The contents have been allocated
     Allocated(Box<dyn VariantHandle>),
+    /// The contents have been inlined
     Inlined(Inlined)
 }
 
 impl BoxedArgument
 {
     /// Acquires the inner pointer from an owned argument.
+    ///
+    /// # SAFETY
+    /// This takes the inner contents.
     pub unsafe fn from_owned(owned: *mut OwnedArgument) -> Self
     {
         debug_assert!(!owned.is_null());
