@@ -1,5 +1,4 @@
 mod variant_info;
-mod boxed;
 mod inlined;
 mod owned;
 mod boxed_argument;

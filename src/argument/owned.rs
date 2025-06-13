@@ -1,5 +1,5 @@
 #[cfg(no_std)]
-use alloc::{borrow, boxed::Box};
+use alloc::{alloc, borrow, boxed::Box};
 
 #[cfg(no_std)]
 use core::{
@@ -10,13 +10,14 @@ use core::{
 
 #[cfg(not(no_std))]
 use std::{
+    alloc,
     any::Any,
     borrow,
     mem,
     ops
 };
 
-use super::boxed::Boxed;
+//use super::boxed::Boxed;
 use super::inlined::Inlined;
 use super::variant_info::{PointerInfo, VariantHandle};
 
@@ -75,7 +76,6 @@ impl PointerInfo for OwnedArgument
             unsafe
             {
                 self.inner_boxed()
-                    .metadata()
             }
         }
     }
@@ -96,7 +96,6 @@ impl PointerInfo for OwnedArgument
             unsafe
             {
                 self.inner_boxed()
-                    .raw_pointer()
             }
         }
     }
@@ -129,13 +128,15 @@ impl OwnedArgument
             
             let boxed : Box<dyn VariantHandle> = Box::new(item);
             
+            let raw_pointer = Box::into_raw(boxed);
+            
             unsafe
             {
                 out
                 .store
                 .as_mut_ptr()
-                .cast::<Box<dyn VariantHandle>>()
-                .write(boxed)
+                .cast::<*mut dyn VariantHandle>()
+                .write(raw_pointer)
             };
             
             out
@@ -170,11 +171,14 @@ impl OwnedArgument
     }
     
     unsafe fn
-    inner_boxed(&self) -> &Boxed
+    inner_boxed(&self) -> *mut dyn VariantHandle
     {
         unsafe
         {
-            &*(&raw const self.store as *const _ as *const Boxed)
+            self.store
+                .as_ptr()
+                .cast::<*mut dyn VariantHandle>()
+                .read()
         }
     }
     
@@ -214,30 +218,50 @@ impl OwnedArgument
     where
         T: Any + Clone
     {
-        let owned = mem::ManuallyDrop::new(self);
+        let mut owned = mem::ManuallyDrop::new(self);
         
-        if owned.is_inlined()
+        let raw_pointer = &raw mut *owned;
+        
+        let boxed =
+        unsafe
         {
-            let ref_ = unsafe { owned.inner_inlined() };
-            let addr = &raw const ref_.store;
-            unsafe
+            BoxedArgument::from_owned(raw_pointer)
+        };
+        
+        match boxed
+        {
+            BoxedArgument::Allocated(a) =>
             {
-                (addr as *const _ as *const T).read_unaligned()
+                let mut store : mem::MaybeUninit<T> =
+                mem::MaybeUninit::uninit();
+                
+                let raw_pointer = Box::into_raw(a);
+                
+                let layout = alloc::Layout::new::<T>();
+                
+                unsafe
+                {
+                    store
+                    .as_mut_ptr()
+                    .cast::<u8>()
+                    .copy_from_nonoverlapping(raw_pointer.cast(), size_of::<T>());
+                    
+                    alloc::dealloc(raw_pointer.cast(), layout);
+                    
+                    store.assume_init()
+                }
             }
-        }
-        else
-        {
-            let pointer = unsafe { owned.inner_boxed().raw_pointer() };
-            let out =
-            unsafe
+            BoxedArgument::Inlined(i) =>
             {
-                pointer.cast_const().cast::<T>().read_unaligned()
-            };
-            unsafe
-            {
-                super::boxed::dealloc(pointer)
-            };
-            out
+                let store = mem::ManuallyDrop::new(i);
+                
+                let pointer = &raw const store;
+                
+                unsafe
+                {
+                    pointer.cast::<T>().read()
+                }
+            }
         }
     }
     
@@ -274,7 +298,6 @@ impl OwnedArgument
             unsafe
             {
                 self.inner_boxed()
-                    .raw_pointer()
             };
             
             let ref_ =
