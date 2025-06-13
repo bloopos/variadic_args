@@ -1,18 +1,33 @@
+/// A discriminant flag.
+///
+/// This is meant to similify the code flow for Argument status.
+#[repr(u8)]
 pub enum Discriminant
 {
+    /// The storage pointer is owned and inlined.
     Inlined,
+    /// The stroage pointer is owned and allocated.
     Allocated,
+    /// The storage pointer is borrowed.
     Borrowed
 }
 
 impl Discriminant
 {
+    /// Creates a discriminant from an inlined flag.
+    ///
+    /// By definition, this should return either Inlined or Allocated.
     pub fn from_owned(inlined: bool) -> Self
     {
         if inlined { Self::Inlined }
         else { Self::Allocated }
     }
     
+    /// Creates a new discriminant based around the following flags:
+    ///
+    /// owned: For determining if the pointer is owned or not,
+    /// inlined: For determining the pointer's inline status. This value
+    /// gets ignored if owned is false.
     pub fn
     from_info((inlined, owned): (bool, bool)) -> Self
     {
