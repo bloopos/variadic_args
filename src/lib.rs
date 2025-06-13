@@ -4,12 +4,10 @@
 extern crate alloc;
 
 mod argument;
-//mod arguments;
-
-pub(crate) use argument::VariantHandle;
+mod arguments;
 
 pub use argument::{OwnedArgument, Argument, ArgumentKind};
-//pub use arguments::Arguments;
+pub use arguments::Arguments;
 //pub mod borrowed_arg;
 
 #[cfg(test)]

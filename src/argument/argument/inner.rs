@@ -4,7 +4,7 @@ use core::{
     mem::ManuallyDrop
 };
 
-use crate::{VariantHandle, OwnedArgument};
+use crate::{argument::VariantHandle, OwnedArgument};
 
 #[cfg(not(no_std))]
 use std::{

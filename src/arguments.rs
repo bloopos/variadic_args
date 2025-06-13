@@ -1,6 +1,5 @@
 #[cfg(no_std)]
 use alloc::{
-    borrow::Cow,
     boxed::Box,
     vec::IntoIter as IntoVecIter
 };
@@ -12,12 +11,8 @@ use core::{
     slice::{Iter, IterMut}
 };
 
-use crate::VariantHandle;
-
-
 #[cfg(not(no_std))]
 use std::{
-    borrow::Cow,
     mem::ManuallyDrop,
     ptr::{slice_from_raw_parts, slice_from_raw_parts_mut},
     slice::{Iter, IterMut},
@@ -30,7 +25,7 @@ const MAX_ARG_COUNT : usize = 1024;
 
 pub struct Arguments<'a>
 {
-    table: *mut Cow<'a, dyn VariantHandle>,
+    table: *mut Argument<'a>,
     count: u16
 }
 
@@ -129,15 +124,15 @@ impl<'a> Arguments<'a>
 }
 
 fn
-raw_slice<'a>(table: *mut Cow<'a, dyn VariantHandle>,
+raw_slice<'a>(table: *mut Argument<'a>,
               count: u16)
 -> *mut [Argument<'a>]
 {
-    slice_from_raw_parts_mut(table.cast(), count as usize)
+    slice_from_raw_parts_mut(table, count as usize)
 }
 
 unsafe fn
-box_from_arguments<'a>(table: *mut Cow<'a, dyn VariantHandle>,
+box_from_arguments<'a>(table: *mut Argument<'a>,
                    count: u16)
 -> Box<[Argument<'a>]>
 {
