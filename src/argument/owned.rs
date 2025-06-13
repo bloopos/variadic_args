@@ -17,11 +17,11 @@ use std::{
     ops
 };
 
-//use super::boxed::Boxed;
-use super::inlined::Inlined;
-use super::variant_info::{PointerInfo, VariantHandle};
-
-use super::boxed_argument::BoxedArgument;
+use super::{
+    boxed_argument::BoxedArgument,
+    inlined::Inlined,
+    variant_info::{PointerInfo, VariantHandle}
+};
 
 pub struct OwnedArgument
 {
@@ -63,40 +63,20 @@ impl PointerInfo for OwnedArgument
     #[inline(never)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle
     {
-        if self.is_inlined()
+        unsafe
         {
-            unsafe
-            {
-                self.inner_inlined()
-                    .metadata()
-            }
-        }
-        else
-        {
-            unsafe
-            {
-                self.inner_boxed()
-            }
+            if self.is_inlined() { self.inner_inlined().metadata() }
+            else { self.inner_boxed() }
         }
     }
     
     #[inline(never)]
     unsafe fn raw_pointer(&self) -> *mut dyn VariantHandle
     {
-        if self.is_inlined()
+        unsafe
         {
-            unsafe
-            {
-                self.inner_inlined()
-                    .raw_pointer()
-            }
-        }
-        else
-        {
-            unsafe
-            {
-                self.inner_boxed()
-            }
+            if self.is_inlined() { self.inner_inlined().raw_pointer() }
+            else { self.inner_boxed() }
         }
     }
 }
@@ -110,16 +90,18 @@ impl OwnedArgument
     {
         if size_of::<T>() <= size_of::<*const ()>()
         {
-            let a =
             Self
             {
                 store: mem::MaybeUninit::new(Inlined::new(item))
-            };
-            assert!(a.is_inlined());
-            a
+            }
         }
         else
         {
+            // This is how we indicate that the storage inside is
+            // allocated, by using zeroed instead of uninit.
+            //
+            // That way, the unregistered read, from is_inlined,
+            // is still valid.
             let mut out =
             Self
             {
@@ -144,11 +126,6 @@ impl OwnedArgument
     }
     
     /// Checks if the storage is inlined or not.
-    ///
-    /// This acts as a discriminant for the fake union storage OwnedVariant has.
-    ///
-    /// # Possible Errors
-    /// Allocated Owned with Inlined discriminant.
     #[inline(always)]
     pub(crate) fn is_inlined(&self) -> bool
     {
@@ -160,8 +137,7 @@ impl OwnedArgument
         }
     }
     
-    unsafe fn
-    inner_inlined(&self) -> &Inlined
+    unsafe fn inner_inlined(&self) -> &Inlined
     {
         unsafe
         {
@@ -170,8 +146,7 @@ impl OwnedArgument
         }
     }
     
-    unsafe fn
-    inner_boxed(&self) -> *mut dyn VariantHandle
+    unsafe fn inner_boxed(&self) -> *mut dyn VariantHandle
     {
         unsafe
         {
@@ -191,7 +166,7 @@ impl OwnedArgument
     {
         unsafe
         {
-            let metadata =
+            let metadata : *const dyn Any =
             self.metadata()
                 .cast_const()
             as *const _ as *const dyn Any;
@@ -283,31 +258,11 @@ impl OwnedArgument
     where
         T: Any + Clone
     {
-        if self.is_inlined()
+        let pointer = unsafe { self.raw_pointer() };
+        
+        unsafe
         {
-            let ref_ = unsafe { self.inner_inlined() };
-            let addr = &raw const ref_.store;
-            unsafe
-            {
-                (*addr.cast::<T>()).clone()
-            }
-        }
-        else
-        {
-            let pointer =
-            unsafe
-            {
-                self.inner_boxed()
-            };
-            
-            let ref_ =
-            pointer.cast_const()
-                   .cast::<T>();
-                   
-            unsafe
-            {
-                (*ref_).clone()
-            }
+            (*pointer.cast::<T>()).clone()
         }
     }
 }
