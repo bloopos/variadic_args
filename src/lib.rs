@@ -14,4 +14,5 @@ pub use arguments::Arguments;
 mod tests
 {
     mod owned_argument;
+    mod argument;
 }

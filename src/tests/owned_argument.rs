@@ -58,6 +58,12 @@ fn test_unique_zst()
 }
 
 #[test]
+fn test_i32()
+{
+    test_owned(1_i32)
+}
+
+#[test]
 fn test_boxed()
 {
     test_owned(Box::new(1_i32));

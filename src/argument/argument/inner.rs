@@ -1,7 +1,7 @@
 #[cfg(no_std)]
 use core::{
     any::Any,
-    mem::ManuallyDrop
+    mem::{ManuallyDrop, MaybeUninit},
 };
 
 use crate::{argument::VariantHandle, OwnedArgument};
@@ -9,7 +9,7 @@ use crate::{argument::VariantHandle, OwnedArgument};
 #[cfg(not(no_std))]
 use std::{
     any::Any,
-    mem::ManuallyDrop
+    mem::{ManuallyDrop, MaybeUninit}
 };
 
 pub enum ArgumentKind<'a>
@@ -26,8 +26,9 @@ pub(super) enum RawArgument<'a>
 
 pub(super) union InnerArgument<'a>
 {
+    // This points to owned storage.
     owned: ManuallyDrop<OwnedArgument>,
-    flags: (*mut dyn VariantHandle, bool, bool),
+    // 
     ref_: &'a dyn VariantHandle
 }
 
@@ -39,22 +40,6 @@ impl InnerArgument<'_>
         
         let mut output = Self { owned };
         
-        #[cfg(debug_assertions)]
-        {
-            unsafe
-            {
-                let pointer = &raw const output;
-                let value =
-                pointer
-                .cast::<u8>()
-                .add(size_of::<&str>())
-                .read();
-                assert!(value < 2);
-            }
-        }
-        
-        output.flags.2 = true;
-        
         output
     }
     
@@ -62,7 +47,7 @@ impl InnerArgument<'_>
     {
         unsafe
         {
-            self.flags.2
+            self.owned.is_owned()
         }
     }
     
@@ -71,23 +56,6 @@ impl InnerArgument<'_>
         !self.is_owned()
     }
     
-    pub unsafe fn to_ref(&self) -> &dyn Any
-    {
-        if self.is_owned()
-        {
-            unsafe
-            {
-                self.owned.raw_ref()
-            }
-        }
-        else
-        {
-            unsafe
-            {
-                self.ref_
-            }
-        }
-    }
     pub unsafe fn to_mut(&mut self) -> &mut dyn Any
     {
         if self.is_ref()
@@ -110,9 +78,9 @@ impl<'a> InnerArgument<'a>
 {
     pub fn new_ref(ref_: &'a dyn VariantHandle) -> Self
     {
-        let mut output = Self { ref_ };
+        let mut output : Self = unsafe { MaybeUninit::zeroed().assume_init() };
         
-        output.flags.2 = false;
+        output.ref_ = ref_;
         
         output
     }
@@ -169,6 +137,24 @@ impl<'a> InnerArgument<'a>
         unsafe
         {
             self.ref_
+        }
+    }
+    
+    pub unsafe fn to_ref(&'a self) -> &'a dyn Any
+    {
+        if self.is_owned()
+        {
+            unsafe
+            {
+                self.owned.raw_ref()
+            }
+        }
+        else
+        {
+            unsafe
+            {
+                self.inner_ref()
+            }
         }
     }
 }

@@ -78,44 +78,45 @@ impl Deref for Argument<'_>
 
 impl Argument<'_>
 {
-    pub fn
-    new_owned<T>(item: T) -> Self
+    pub fn new_owned<T>(item: T) -> Self
     where
         T: Any + Clone
     {
+        let owned = OwnedArgument::new(item);
+        
         Self
         {
-            inner: InnerArgument::new_owned(OwnedArgument::new(item))
+            inner: InnerArgument::new_owned(owned)
         }
     }
     
-    pub fn
-    is_owned(&self) -> bool
+    pub fn is_owned(&self) -> bool
     {
-        self.inner.is_owned()
+        self.inner
+            .is_owned()
     }
     
-    pub fn
-    is_borrowed(&self) -> bool
+    pub fn is_borrowed(&self) -> bool
     {
-        self.inner.is_ref()
+        self.inner
+            .is_ref()
     }
     
-    pub fn
-    to_mut(&mut self) -> &mut dyn Any
+    pub fn to_mut(&mut self) -> &mut dyn Any
     {
         unsafe
         {
-            self.inner.to_mut()
+            self.inner
+                .to_mut()
         }
     }
     
-    pub fn
-    to_owned(&self) -> Self
+    pub fn to_owned(&self) -> Self
     {
         if self.is_borrowed()
         {
             let ref_ = unsafe { self.inner.inner_ref() };
+            
             let owned = ref_.clone_object();
             
             Self
@@ -129,8 +130,7 @@ impl Argument<'_>
         }
     }
     
-    pub fn
-    downcast_owned<T>(self) -> Result<T, Self>
+    pub fn downcast_owned<T>(self) -> Result<T, Self>
     where
         T: Clone + Any
     {
@@ -138,60 +138,87 @@ impl Argument<'_>
         {
             RawArgument::Owned(o)
             if o.is_type::<T>()
-            => unsafe { Ok(o.downcast_owned_unchecked() ) },
+            => unsafe { Ok(o.downcast_owned_unchecked() ) }
+            
             RawArgument::Owned(o)
             =>
             Err(Self { inner: InnerArgument::new_owned(o) }),
+            
             RawArgument::Borrowed(b)
             =>
             Err(Self { inner: InnerArgument::new_ref(b) })
         }
     }
     
-    pub unsafe fn
-    downcast_owned_unchecked<T>(self) -> T
+    pub unsafe fn downcast_owned_unchecked<T>(self) -> T
     where
         T: Clone + Any
     {
-        let RawArgument::Owned(o) = self.inner_contents()
+        debug_assert!(self.is_owned());
+        
+        let RawArgument::Owned(contents) = self.inner_contents()
         else
         {
-            panic!()
+            #[cfg(debug_assertions)]
+            {
+                unreachable!()
+            }
+            #[cfg(not(debug_assertions))]
+            {
+                panic!()
+            }
         };
+        
+        debug_assert!(contents.is_type::<T>());
         
         unsafe
         {
-            o.downcast_owned_unchecked()
+            contents.downcast_owned_unchecked()
         }
     }
     
-    pub fn
-    downcast_cloned<T>(&self) -> Option<T>
+    fn
+    is_type<T>(&self) -> bool
     where
         T: Any + Clone
     {
-        let ref_ = self.deref();
-        
-        if ref_.is::<T>()
-        {
-            let out =
-            unsafe
-            {
-                (*(&raw const ref_).cast::<T>()).clone()
-            };
-            Some(out)
-        } else { None }
+        self.deref().is::<T>()
     }
     
-    pub unsafe fn
-    downcast_cloned_unchecked<T>(&self) -> T
+    pub fn downcast_cloned<T>(&self) -> Option<T>
+    where
+        T: Any + Clone
+    {
+        match self.downcast_ref::<T>()
+        {
+            Some(t) => Some(t.clone()),
+            None => None
+        }
+    }
+    
+    unsafe fn downcast_ref_unchecked<T>(&self) -> &T
+    where
+        T: Any + Clone
+    {
+        let binding = unsafe { self.inner.to_ref() };
+        
+        
+        debug_assert!(binding.is::<T>());
+        
+        
+        unsafe
+        {
+            &*(binding as *const dyn Any as *const T)
+        }
+    }
+    
+    pub unsafe fn downcast_cloned_unchecked<T>(&self) -> T
     where
         T: Any + Clone
     {
         unsafe
         {
-            let ref_ = self.deref();
-            (*(&raw const ref_).cast::<T>()).clone()
+            self.downcast_ref_unchecked::<T>().clone()
         }
     }
 }
@@ -216,8 +243,7 @@ impl<'a> Argument<'a>
         }
     }
     
-    fn
-    inner_contents(self) -> RawArgument<'a>
+    fn inner_contents(self) -> RawArgument<'a>
     {
         let mut store = ManuallyDrop::new(self);
         
@@ -227,8 +253,7 @@ impl<'a> Argument<'a>
         }
     }
     
-    pub fn
-    into_inner(self) -> ArgumentKind<'a>
+    pub fn into_inner(self) -> ArgumentKind<'a>
     {
         let store = ManuallyDrop::new(self);
         

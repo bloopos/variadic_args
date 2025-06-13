@@ -108,6 +108,11 @@ impl OwnedArgument
                 store: mem::MaybeUninit::zeroed()
             };
             
+            unsafe
+            {
+                out.store.as_mut_ptr().cast::<u8>().add(17).write(1);
+            }
+            
             let boxed : Box<dyn VariantHandle> = Box::new(item);
             
             let raw_pointer = Box::into_raw(boxed);
@@ -134,6 +139,18 @@ impl OwnedArgument
             self.store
                 .assume_init_ref()
                 .is_inlined()
+        }
+    }
+    
+    pub(crate) fn is_owned(&self) -> bool
+    {
+        unsafe
+        {
+            self.store
+                .as_ptr()
+                .cast::<bool>()
+                .add(17)
+                .read()
         }
     }
     
@@ -179,8 +196,8 @@ impl OwnedArgument
     {
         unsafe
         {
-            &*self.raw_pointer()
-                .cast_const()
+            let pointer : *const dyn VariantHandle = self.raw_pointer().cast_const();
+            &*pointer
         }
     }
     

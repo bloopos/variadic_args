@@ -1,7 +1,7 @@
 use super::variant_info::{PointerInfo, VariantHandle};
 
 /// A constant used for inline storage.
-const INLINE_STORE : usize = size_of::<&str>() + 1;
+const INLINE_STORE : usize = size_of::<&str>() + 2;
 
 // Inline storage for a pointer.
 //
