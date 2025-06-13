@@ -4,7 +4,7 @@ use core::{
     mem::{ManuallyDrop, MaybeUninit},
 };
 
-use crate::{argument::VariantHandle, OwnedArgument};
+use crate::{argument::VariantHandle,argument::discriminant::Discriminant, OwnedArgument};
 
 #[cfg(not(no_std))]
 use std::{
@@ -43,35 +43,50 @@ impl InnerArgument<'_>
         output
     }
     
-    pub fn is_owned(&self) -> bool
+    pub fn discriminant(&self) -> Discriminant
     {
         unsafe
         {
-            self.owned.is_owned()
+            self.owned.discriminant()
         }
+    }
+    
+    pub fn is_owned(&self) -> bool
+    {
+        matches!(self.discriminant(), Discriminant::Inlined | Discriminant::Allocated )
     }
     
     pub fn is_ref(&self) -> bool
     {
-        !self.is_owned()
+        matches!(self.discriminant(), Discriminant::Borrowed)
     }
     
-    pub unsafe fn to_mut(&mut self) -> &mut dyn Any
+    pub fn to_mut(&mut self) -> &mut dyn Any
     {
-        if self.is_ref()
+        match self.discriminant()
         {
-            let owned = unsafe { self.ref_.clone_object() };
-            *self = Self::new_owned(owned);
-        }
-        
-        debug_assert!(self.is_owned());
-        
-        unsafe
-        {
-            &mut *self.owned
+            Discriminant::Borrowed =>
+            {
+                let owned = unsafe { self.ref_.clone_object() };
+                *self = Self::new_owned(owned);
+                
+                match self.discriminant()
+                {
+                    Discriminant::Inlined | Discriminant::Allocated =>
+                    unsafe
+                    {
+                        &mut *self.owned
+                    },
+                    _ => unreachable!()
+                }
+            }
+            _ =>
+            unsafe
+            {
+                &mut *self.owned
+            }
         }
     }
-    
 }
 
 impl<'a> InnerArgument<'a>
@@ -85,38 +100,38 @@ impl<'a> InnerArgument<'a>
         output
     }
     
-    pub unsafe fn as_ref(&'a self) -> Self
+    pub fn as_ref(&'a self) -> Self
     {
         let ref_ =
-        if self.is_ref()
+        match self.discriminant()
         {
-            unsafe { self.inner_ref() }
-        }
-        else { unsafe { self.owned.raw_ref() } };
+            Discriminant::Borrowed => unsafe { self.inner_ref() },
+            _ => unsafe { self.owned.raw_ref() }
+        };
         
         Self::new_ref(ref_)
     }
     
     pub unsafe fn as_argument(&mut self) -> RawArgument<'a>
     {
-        if self.is_owned()
+        match self.discriminant()
         {
-            let owned =
-            unsafe
+            Discriminant::Borrowed =>
             {
-                ManuallyDrop::take(&mut self.owned)
-            };
-            
-            RawArgument::Owned(owned)
-        }
-        else
-        {
-            let ref_ =
-            unsafe
+                let ref_ = unsafe { self.inner_ref() };
+                
+                RawArgument::Borrowed(ref_)
+            }
+            _ =>
             {
-                self.ref_
-            };
-            RawArgument::Borrowed(ref_)
+                let owned =
+                unsafe
+                {
+                    ManuallyDrop::take(&mut self.owned)
+                };
+                
+                RawArgument::Owned(owned)
+            }
         }
     }
     
@@ -140,21 +155,12 @@ impl<'a> InnerArgument<'a>
         }
     }
     
-    pub unsafe fn to_ref(&'a self) -> &'a dyn Any
+    pub fn to_ref(&'a self) -> &'a dyn Any
     {
-        if self.is_owned()
+        match self.discriminant()
         {
-            unsafe
-            {
-                self.owned.raw_ref()
-            }
-        }
-        else
-        {
-            unsafe
-            {
-                self.inner_ref()
-            }
+            Discriminant::Borrowed => unsafe { self.inner_ref() },
+            _ => unsafe { self.owned.raw_ref() }
         }
     }
 }

@@ -1,7 +1,13 @@
 use super::variant_info::{PointerInfo, VariantHandle};
 
+#[cfg(no_std)]
+use core::mem::MaybeUninit;
+
+#[cfg(not(no_std))]
+use std::mem::MaybeUninit;
+
 /// A constant used for inline storage.
-const INLINE_STORE : usize = size_of::<&str>() + 2;
+const INLINE_STORE : usize = size_of::<&str>();
 
 // Inline storage for a pointer.
 //
@@ -12,7 +18,9 @@ const INLINE_STORE : usize = size_of::<&str>() + 2;
 #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
 pub(super) struct Inlined
 {
-    store: [u8; INLINE_STORE]
+    store: [u8; INLINE_STORE],
+    is_inlined: bool,
+    is_owned: bool
 }
 
 impl Drop for Inlined
@@ -39,7 +47,7 @@ impl Inlined
     pub fn new<T: VariantHandle>(item: T) -> Self
     {
         // This guarantees that the storage we write into is inlined.
-        let mut store = [1; INLINE_STORE];
+        let mut store = [0; INLINE_STORE];
         
         let raw_pointer = store.as_mut_ptr();
         
@@ -60,20 +68,35 @@ impl Inlined
         
         Self
         {
-            store
+            store,
+            is_inlined: true,
+            is_owned: true
         }
     }
     
     pub fn
-    is_inlined(&self) -> bool
+    uninit_allocated() -> MaybeUninit<Self>
     {
-        // Safety:
-        // Should be initialized with ones. Anything greater than that
-        // would be a concern.
+        let mut storage : MaybeUninit<Self> =
+        MaybeUninit::zeroed();
+        
         unsafe
         {
-            *(&raw const self.store).cast::<bool>().add(16)
+            storage.assume_init_mut().is_owned = true;
         }
+        
+        storage
+    }
+    pub fn
+    is_inlined(&self) -> bool
+    {
+        self.is_inlined
+    }
+    
+    pub fn
+    storage_info(&self) -> (bool, bool)
+    {
+        (self.is_inlined, self.is_owned)
     }
 }
 

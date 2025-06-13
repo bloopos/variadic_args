@@ -1,5 +1,5 @@
 #[cfg(no_std)]
-use alloc::{alloc, borrow, boxed::Box};
+use alloc::{alloc, boxed::Box};
 
 #[cfg(no_std)]
 use core::{
@@ -12,12 +12,12 @@ use core::{
 use std::{
     alloc,
     any::Any,
-    borrow,
     mem,
     ops
 };
 
 use super::{
+    discriminant::Discriminant,
     boxed_argument::BoxedArgument,
     inlined::Inlined,
     variant_info::{PointerInfo, VariantHandle}
@@ -63,20 +63,22 @@ unsafe impl PointerInfo for OwnedArgument
     #[inline(never)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle
     {
-        unsafe
+        match self.owned_discriminant()
         {
-            if self.is_inlined() { self.inner_inlined().metadata() }
-            else { self.inner_boxed() }
+            Discriminant::Inlined => unsafe { self.inner_inlined().metadata() },
+            Discriminant::Allocated => unsafe { self.inner_boxed() },
+            _ => unreachable!()
         }
     }
     
     #[inline(never)]
     unsafe fn raw_pointer(&self) -> *mut dyn VariantHandle
     {
-        unsafe
+        match self.owned_discriminant()
         {
-            if self.is_inlined() { self.inner_inlined().raw_pointer() }
-            else { self.inner_boxed() }
+            Discriminant::Inlined => unsafe { self.inner_inlined().raw_pointer() },
+            Discriminant::Allocated => unsafe  { self.inner_boxed() },
+            _ => unreachable!()
         }
     }
 }
@@ -105,13 +107,8 @@ impl OwnedArgument
             let mut out =
             Self
             {
-                store: mem::MaybeUninit::zeroed()
+                store: Inlined::uninit_allocated()
             };
-            
-            unsafe
-            {
-                out.store.as_mut_ptr().cast::<u8>().add(17).write(1);
-            }
             
             let boxed : Box<dyn VariantHandle> = Box::new(item);
             
@@ -130,6 +127,26 @@ impl OwnedArgument
         }
     }
     
+    pub(crate) fn owned_discriminant(&self) -> Discriminant
+    {
+        let inlined = self.is_inlined();
+        
+        Discriminant::from_owned(inlined)
+    }
+    
+    pub(crate) fn discriminant(&self) -> Discriminant
+    {
+        let storage_info =
+        unsafe
+        {
+            self.store
+                .assume_init_ref()
+                .storage_info()
+        };
+        
+        Discriminant::from_info(storage_info)
+    }
+    
     /// Checks if the storage is inlined or not.
     #[inline(always)]
     pub(crate) fn is_inlined(&self) -> bool
@@ -139,18 +156,6 @@ impl OwnedArgument
             self.store
                 .assume_init_ref()
                 .is_inlined()
-        }
-    }
-    
-    pub(crate) fn is_owned(&self) -> bool
-    {
-        unsafe
-        {
-            self.store
-                .as_ptr()
-                .cast::<bool>()
-                .add(17)
-                .read()
         }
     }
     
@@ -318,25 +323,3 @@ impl ops::DerefMut for OwnedArgument
     }
 }
 
-impl borrow::Borrow<dyn VariantHandle> for OwnedArgument
-{
-    fn borrow(&self) -> &dyn VariantHandle
-    {
-        // Method is the same, but aliasing is too complicated.
-        unsafe
-        {
-            &*self.raw_pointer()
-                  .cast_const()
-        }
-    }
-}
-
-impl borrow::ToOwned for dyn VariantHandle
-{
-    type Owned = OwnedArgument;
-    
-    fn to_owned(&self) -> OwnedArgument
-    {
-        self.clone_object()
-    }
-}

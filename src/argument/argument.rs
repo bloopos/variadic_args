@@ -14,7 +14,7 @@ use std::{
     mem::ManuallyDrop
 };
 
-use super::OwnedArgument;
+use super::{OwnedArgument, discriminant::Discriminant};
 
 use inner::{RawArgument, InnerArgument};
 
@@ -39,21 +39,27 @@ impl<'a> Clone for Argument<'a>
     fn clone(&self) -> Self
     {
         let inner =
-        if self.inner.is_owned()
+        match self.inner.discriminant()
         {
-            let owned =
+            Discriminant::Borrowed =>
             {
-                let raw = &raw const self.inner;
-                unsafe
+                let ref_ = unsafe { self.inner.inner_ref() };
+                
+                InnerArgument::new_ref(ref_)
+            }
+            _ =>
+            {
+                let owned =
                 {
-                    (*raw.cast::<OwnedArgument>()).clone()
-                }
-            };
-            InnerArgument::new_owned(owned)
-        }
-        else
-        {
-            InnerArgument::new_ref(unsafe { self.inner.inner_ref() })
+                    let raw = &raw const self.inner;
+                    unsafe
+                    {
+                        (*raw.cast::<OwnedArgument>()).clone()
+                    }
+                };
+                
+                InnerArgument::new_owned(owned)
+            }
         };
         
         Self
@@ -113,20 +119,20 @@ impl Argument<'_>
     
     pub fn to_owned(&self) -> Self
     {
-        if self.is_borrowed()
+        match self.inner.discriminant()
         {
-            let ref_ = unsafe { self.inner.inner_ref() };
-            
-            let owned = ref_.clone_object();
-            
-            Self
+            Discriminant::Borrowed =>
             {
-                inner: InnerArgument::new_owned(owned)
+                let ref_ = unsafe { self.inner.inner_ref() };
+                
+                let owned = ref_.clone_object();
+                
+                Self
+                {
+                    inner: InnerArgument::new_owned(owned)
+                }
             }
-        }
-        else
-        {
-            self.clone()
+            _ => self.clone()
         }
     }
     
