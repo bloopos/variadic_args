@@ -175,6 +175,15 @@ impl OwnedArgument
         }
     }
     
+    pub(crate) fn raw_ref<'a>(&'a self) -> &'a dyn VariantHandle
+    {
+        unsafe
+        {
+            &*self.raw_pointer()
+                .cast_const()
+        }
+    }
+    
     /// 
     pub fn downcast_owned<T>(self) -> Result<T, Self>
     where
