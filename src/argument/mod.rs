@@ -1,8 +1,5 @@
-//finished
 mod variant_info;
-
 mod boxed;
-//finished
 mod inlined;
 mod owned;
 
