@@ -23,8 +23,14 @@ use super::{
     variant_info::{PointerInfo, VariantHandle}
 };
 
+/// An owned argument.
+///
+/// This carries a generic item that implements both Any and Clone.
+/// In addition, depending on the storage itself, it is able to implement
+/// items whose size is no more than 8 bytes for 64-bit systems (or 4 for 32-bit systems).
 pub struct OwnedArgument
 {
+    /// The inner storage. It is uninitialized to maintain pointer compatability.
     store: mem::MaybeUninit<Inlined>
 }
 
@@ -32,13 +38,12 @@ impl Clone for OwnedArgument
 {
     fn clone(&self) -> Self
     {
+        let pointer : *const dyn VariantHandle =
+        unsafe { self.raw_pointer().cast_const() };
+        
         unsafe
         {
-            let ref_ =
-            self.raw_pointer()
-                .cast_const();
-            
-            (*ref_).clone_object()
+            (*pointer).clone_object()
         }
     }
 }
@@ -63,6 +68,7 @@ unsafe impl PointerInfo for OwnedArgument
     #[inline(never)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle
     {
+        // Safety: by matching discriminants, we are able to get the correct metadata.
         match self.owned_discriminant()
         {
             Discriminant::Inlined => unsafe { self.inner_inlined().metadata() },
@@ -74,6 +80,7 @@ unsafe impl PointerInfo for OwnedArgument
     #[inline(never)]
     unsafe fn raw_pointer(&self) -> *mut dyn VariantHandle
     {
+        // Safety: by matching discriminants, we are able to get the correct raw pointer.
         match self.owned_discriminant()
         {
             Discriminant::Inlined => unsafe { self.inner_inlined().raw_pointer() },
@@ -83,8 +90,27 @@ unsafe impl PointerInfo for OwnedArgument
     }
 }
 
+#[cfg(debug_assertions)]
+fn pointer_matches<T>(pointer: *mut dyn VariantHandle) -> bool
+where
+    T: Any + Clone
+{
+    assert!(!pointer.is_null());
+    
+    let pointer : *const dyn Any =
+    pointer.cast_const() as *const _ as *const dyn Any;
+    
+    let ref_ = unsafe { &*pointer };
+    
+    ref_.is::<T>()
+}
+
 impl OwnedArgument
 {
+    /// Creates a new OwnedArgument based around a generic item.
+    ///
+    /// If the size of said item is less than 8 bytes for 64-bit systems (4 for 32-bit systems),
+    /// then the storage is inlined. Otherwise, the storage gets allocated instead.
     #[inline(always)]
     pub fn new<T>(item: T) -> Self
     where
@@ -99,11 +125,8 @@ impl OwnedArgument
         }
         else
         {
-            // This is how we indicate that the storage inside is
-            // allocated, by using zeroed instead of uninit.
-            //
-            // That way, the unregistered read, from is_inlined,
-            // is still valid.
+            // Use a custom Inlined function to "initialize" an
+            // allocated instance of storage.
             let mut output =
             Self
             {
@@ -126,8 +149,12 @@ impl OwnedArgument
         }
     }
     
+    /// Acquires the discriminant of the OwnedPointer.
+    ///
+    /// This should not return Discriminant::Borrowed.
     pub(crate) fn owned_discriminant(&self) -> Discriminant
     {
+        // Safety: Owned pointer is initialized with it being owned as true.
         let is_inlined =
         unsafe {
             self.inner_inlined()
@@ -137,8 +164,10 @@ impl OwnedArgument
         Discriminant::from_owned(is_inlined)
     }
     
+    /// Acquires the discriminant based around the OwnedPointer's storage information.
     pub(crate) fn discriminant(&self) -> Discriminant
     {
+        // Safety: We only need to know the info about the storage itself.
         let storage_info =
         unsafe
         {
@@ -150,10 +179,13 @@ impl OwnedArgument
     }
     
     /// Checks if the storage is inlined or not.
+    ///
+    /// This is only used for testing purposes.
     #[inline(always)]
     #[cfg(test)]
     pub(crate) fn is_inlined(&self) -> bool
     {
+        // Safety: We are only accessing one field.
         unsafe
         {
             self.inner_inlined()
@@ -161,6 +193,12 @@ impl OwnedArgument
         }
     }
     
+    /// Acquires the inner pointer to the inlined storage.
+    ///
+    /// # Safety
+    /// For accessing information, such as owned and inlined status,
+    /// this is guaranteed to be safe. Otherwise, this function assumes
+    /// that the storage is inlined.
     unsafe fn inner_inlined(&self) -> &Inlined
     {
         unsafe
@@ -170,6 +208,10 @@ impl OwnedArgument
         }
     }
     
+    /// Acquires the inner pointer to the allocated storage.
+    ///
+    /// # Safety
+    /// This assumes that the storage is allocated.
     unsafe fn inner_boxed(&self) -> *mut dyn VariantHandle
     {
         unsafe
@@ -191,14 +233,15 @@ impl OwnedArgument
         unsafe
         {
             let metadata : *const dyn Any =
-            self.metadata()
-                .cast_const()
-            as *const _ as *const dyn Any;
+            self.metadata().cast_const() as *const _ as *const dyn Any;
             
             (*metadata).is::<T>()
         }
     }
     
+    /// Acquires a raw reference handle to the object itself.
+    ///
+    /// This is useful for internally creating references to VariantHandle.
     pub(crate) fn raw_ref<'a>(&'a self) -> &'a dyn VariantHandle
     {
         let raw_pointer =
@@ -213,7 +256,11 @@ impl OwnedArgument
         }
     }
     
-    /// 
+    /// Downcasts the object into an owned instance.
+    ///
+    /// # Return values:
+    /// Ok(val): The value matches is T, and the previous storage frees itself.
+    /// Err(self): The value does not match T, the inner value should remain identical.
     pub fn downcast_owned<T>(self) -> Result<T, Self>
     where
         T: Any + Clone
@@ -227,6 +274,10 @@ impl OwnedArgument
         } else { Err(self) }
     }
     
+    /// Downcasts the inner value into T without checking it first.
+    ///
+    /// # Safety
+    /// This assumes that the type supplied is, in fact, T.
     pub unsafe fn downcast_owned_unchecked<T>(self) -> T
     where
         T: Any + Clone
@@ -246,6 +297,8 @@ impl OwnedArgument
             BoxedArgument::Allocated(a) =>
             {
                 let raw_pointer = Box::into_raw(a);
+                
+                debug_assert!(pointer_matches::<T>(raw_pointer));
                 
                 let output =
                 {
@@ -270,6 +323,12 @@ impl OwnedArgument
             }
             BoxedArgument::Inlined(i) =>
             {
+                #[cfg(debug_assertions)]
+                {
+                    let raw_pointer = unsafe { i.raw_pointer() };
+                    assert!(pointer_matches::<T>(raw_pointer));
+                }
+                
                 let store = mem::ManuallyDrop::new(i);
                 
                 let pointer = &raw const store;
@@ -282,6 +341,11 @@ impl OwnedArgument
         }
     }
     
+    /// Downcasts a reference of the OwnedArgument before returning the cloned contents of the inner value:
+    ///
+    /// # Return values
+    /// Some(v): The cloned object is of type T,
+    /// None: OwnedArgument is not type T
     pub fn downcast_cloned<T>(&self) -> Option<T>
     where
         T: Any + Clone
@@ -296,11 +360,17 @@ impl OwnedArgument
         else { None }
     }
     
+    /// Returns the cloned contents of the inner type of an OwnedArgument without performing any checks.
+    ///
+    /// # Safety
+    /// This assumes that the OwnedArgument is type T.
     pub unsafe fn downcast_cloned_unchecked<T>(&self) -> T
     where
         T: Any + Clone
     {
         let pointer = unsafe { self.raw_pointer() };
+        
+        debug_assert!(pointer_matches::<T>(pointer));
         
         unsafe
         {
@@ -308,6 +378,7 @@ impl OwnedArgument
         }
     }
 }
+
 
 impl ops::Deref for OwnedArgument
 {
@@ -322,6 +393,7 @@ impl ops::Deref for OwnedArgument
         }
     }
 }
+
 
 impl ops::DerefMut for OwnedArgument
 {
