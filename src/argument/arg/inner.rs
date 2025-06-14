@@ -44,6 +44,7 @@ pub(super) union InnerArgument<'a>
 impl InnerArgument<'_>
 {
     /// Creates a new owned argument.
+    #[inline(always)]
     pub fn new_owned(item: OwnedArgument) -> Self
     {
         let owned = ManuallyDrop::new(item);
@@ -55,6 +56,7 @@ impl InnerArgument<'_>
     }
     
     /// Provides the discriminant for the inner storage.
+    #[inline(always)]
     pub fn discriminant(&self) -> Discriminant
     {
         // Safety: We are only accessing discriminant information.
@@ -64,16 +66,19 @@ impl InnerArgument<'_>
         }
     }
     
+    #[inline(always)]
     pub fn is_owned(&self) -> bool
     {
         matches!(self.discriminant(), Discriminant::Inlined | Discriminant::Allocated )
     }
     
+    #[inline(always)]
     pub fn is_borrowed(&self) -> bool
     {
         matches!(self.discriminant(), Discriminant::Borrowed)
     }
     
+    #[inline(always)]
     pub fn to_mut(&mut self) -> &mut dyn Any
     {
         match self.discriminant()
@@ -105,6 +110,7 @@ impl InnerArgument<'_>
     ///
     /// # Safety
     /// The inner contents must be owned.
+    #[inline(always)]
     pub unsafe fn owned_debug_handle(&self) -> &dyn Debug
     {
         unsafe
@@ -117,6 +123,7 @@ impl InnerArgument<'_>
 impl<'a> InnerArgument<'a>
 {
     /// Creates a new instance from a borrowed trait handle.
+    #[inline(always)]
     pub fn new_ref(ref_: &'a dyn VariantHandle) -> Self
     {
         // Safety: This lets us "initialize" a borrowed instance.
@@ -128,6 +135,7 @@ impl<'a> InnerArgument<'a>
     }
     
     /// Creates a new object based around a reference to the source object.
+    #[inline(always)]
     pub fn as_ref(&'a self) -> Self
     {
         let ref_ =
@@ -146,6 +154,7 @@ impl<'a> InnerArgument<'a>
     /// This assumes that not only the result must be used,
     /// but the function should be called once.
     #[must_use = "Potential memory leak."]
+    #[inline(always)]
     pub unsafe fn as_argument(&mut self) -> RawArgument<'a>
     {
         match self.discriminant()
@@ -169,6 +178,7 @@ impl<'a> InnerArgument<'a>
         }
     }
     
+    #[inline(always)]
     pub fn into_inner(self) -> ArgumentKind<'a>
     {
         match self.discriminant()
@@ -182,6 +192,7 @@ impl<'a> InnerArgument<'a>
     ///
     /// # Safety
     /// This assumes that the storage itself is borrowed.
+    #[inline(always)]
     pub unsafe fn inner_ref(&self) -> &'a dyn VariantHandle
     {
         unsafe
@@ -190,6 +201,7 @@ impl<'a> InnerArgument<'a>
         }
     }
     
+    #[inline(always)]
     pub fn to_ref(&'a self) -> &'a dyn Any
     {
         match self.discriminant()

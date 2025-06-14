@@ -37,6 +37,7 @@ pub struct Argument<'a>
 
 impl fmt::Debug for Argument<'_>
 {
+    #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
         match self.inner.discriminant()
@@ -59,6 +60,7 @@ impl fmt::Debug for Argument<'_>
 
 impl Drop for Argument<'_>
 {
+    #[inline(always)]
     fn drop(&mut self)
     {
         let _ = unsafe { self.inner.as_argument() };
@@ -67,6 +69,7 @@ impl Drop for Argument<'_>
 
 impl<'a> Clone for Argument<'a>
 {
+    #[inline(always)]
     fn clone(&self) -> Self
     {
         let inner =
@@ -104,6 +107,7 @@ impl Deref for Argument<'_>
 {
     type Target = dyn Any;
     
+    #[inline(always)]
     fn deref(&self) -> &dyn Any
     {
         self.inner.to_ref()
@@ -113,6 +117,7 @@ impl Deref for Argument<'_>
 impl Argument<'_>
 {
     /// Creates a new owned Argument.
+    #[inline(always)]
     pub fn new_owned<T>(item: T) -> Self
     where
         T: Any + Clone
@@ -126,6 +131,7 @@ impl Argument<'_>
     }
     
     /// Checks if the argument is owned.
+    #[inline(always)]
     pub fn is_owned(&self) -> bool
     {
         self.inner
@@ -133,6 +139,7 @@ impl Argument<'_>
     }
     
     /// Checks if the argument is borrowed.
+    #[inline(always)]
     pub fn is_borrowed(&self) -> bool
     {
         self.inner
@@ -143,12 +150,14 @@ impl Argument<'_>
     ///
     /// If the inner contents are borrowed, this creates a new
     /// owned instance first before returning the reference itself.
+    #[inline(always)]
     pub fn to_mut(&mut self) -> &mut dyn Any
     {
         self.inner.to_mut()
     }
     
     /// Clones the inner contents of the object, returning an owned argument.
+    #[inline(always)]
     pub fn to_owned(&self) -> Self
     {
         match self.inner.discriminant()
@@ -173,6 +182,7 @@ impl Argument<'_>
     /// # Return values
     /// Ok(T): The argument gets consumed and returns the inner contents.
     /// Err(Self): Either the argument is not of type T or the argument itself is not owned.
+    #[inline(always)]
     pub fn downcast_owned<T>(self) -> Result<T, Self>
     where
         T: Clone + Any
@@ -200,6 +210,7 @@ impl Argument<'_>
     ///
     /// # Panics
     /// The function will panic if the argument itself is not owned.
+    #[inline(always)]
     pub unsafe fn downcast_owned_unchecked<T>(self) -> T
     where
         T: Clone + Any
@@ -230,6 +241,7 @@ impl Argument<'_>
     /// Downcasts the argument into a cloned object of type T.
     ///
     /// Returns None if the object's type is not T.
+    #[inline(always)]
     pub fn downcast_cloned<T>(&self) -> Option<T>
     where
         T: Any + Clone
@@ -250,6 +262,7 @@ impl Argument<'_>
     ///
     /// # Safety
     /// Assumes that the contents are of type T.
+    #[inline(always)]
     unsafe fn downcast_ref_unchecked<T>(&self) -> &T
     where
         T: Any + Clone
@@ -268,6 +281,7 @@ impl Argument<'_>
     ///
     /// # Safety
     /// Assumes that the contents are of type T.
+    #[inline(always)]
     pub unsafe fn downcast_cloned_unchecked<T>(&self) -> T
     where
         T: Any + Clone
@@ -282,6 +296,7 @@ impl Argument<'_>
 impl<'a> Argument<'a>
 {
     /// Creates a borrowed argument of item T.
+    #[inline(always)]
     pub fn new_borrowed<T>(item: &'a T) -> Self
     where
         T: Any + Clone
@@ -293,6 +308,7 @@ impl<'a> Argument<'a>
     }
     
     /// Creates a borrowed reference to the source argument.
+    #[inline(always)]
     pub fn as_ref(&'a self) -> Self
     {
         Self
@@ -302,6 +318,7 @@ impl<'a> Argument<'a>
     }
     
     /// Consumes the argument, returning a wrapper to the inner argument itself.
+    #[inline(always)]
     fn inner_contents(self) -> RawArgument<'a>
     {
         let mut store = ManuallyDrop::new(self);
@@ -313,6 +330,7 @@ impl<'a> Argument<'a>
     }
     
     /// Consumes the argument itself, returning what kind of argument it is.
+    #[inline(always)]
     pub fn into_inner(self) -> ArgumentKind<'a>
     {
         let store = ManuallyDrop::new(self);

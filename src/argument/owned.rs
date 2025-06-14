@@ -38,6 +38,7 @@ pub struct OwnedArgument
 
 impl fmt::Debug for OwnedArgument
 {
+    #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
         let is_inlined = matches!(self.owned_discriminant(), Discriminant::Inlined);
@@ -65,6 +66,7 @@ impl fmt::Debug for OwnedArgument
 
 impl Clone for OwnedArgument
 {
+    #[inline(always)]
     fn clone(&self) -> Self
     {
         let pointer : *const dyn VariantHandle =
@@ -79,6 +81,7 @@ impl Clone for OwnedArgument
 
 impl Drop for OwnedArgument
 {
+    #[inline(always)]
     fn drop(&mut self)
     {
         let raw_pointer = &raw mut *self;
@@ -93,6 +96,7 @@ impl Drop for OwnedArgument
 
 unsafe impl PointerInfo for OwnedArgument
 {
+    #[inline(always)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle
     {
         // Safety: by matching discriminants, we are able to get the correct metadata.
@@ -104,6 +108,7 @@ unsafe impl PointerInfo for OwnedArgument
         }
     }
     
+    #[inline(always)]
     unsafe fn raw_pointer(&self) -> *mut dyn VariantHandle
     {
         // Safety: by matching discriminants, we are able to get the correct raw pointer.
@@ -137,6 +142,7 @@ impl OwnedArgument
     ///
     /// If the size of said item is less than 8 bytes for 64-bit systems (4 for 32-bit systems),
     /// then the storage is inlined. Otherwise, the storage gets allocated instead.
+    #[inline(always)]
     pub fn new<T>(item: T) -> Self
     where
         T: Any + Clone
@@ -177,6 +183,7 @@ impl OwnedArgument
     /// Acquires the discriminant of the OwnedPointer.
     ///
     /// This should not return Discriminant::Borrowed.
+    #[inline(always)]
     pub(crate) fn owned_discriminant(&self) -> Discriminant
     {
         // Safety: Owned pointer is initialized with it being owned as true.
@@ -190,6 +197,7 @@ impl OwnedArgument
     }
     
     /// Acquires the discriminant based around the OwnedPointer's storage information.
+    #[inline(always)]
     pub(crate) fn discriminant(&self) -> Discriminant
     {
         // Safety: We only need to know the info about the storage itself.
@@ -223,6 +231,7 @@ impl OwnedArgument
     /// For accessing information, such as owned and inlined status,
     /// this is guaranteed to be safe. Otherwise, this function assumes
     /// that the storage is inlined.
+    #[inline(always)]
     unsafe fn inner_inlined(&self) -> &Inlined
     {
         unsafe
@@ -236,6 +245,7 @@ impl OwnedArgument
     ///
     /// # Safety
     /// This assumes that the storage is allocated.
+    #[inline(always)]
     unsafe fn inner_boxed(&self) -> *mut dyn VariantHandle
     {
         unsafe
@@ -250,6 +260,7 @@ impl OwnedArgument
     /// A "wrapper" for `Any::is::<T>()`.
     ///
     /// In case Any interferes with dereferencing the OwnedArgument, use the following function instead.
+    #[inline(always)]
     pub fn is_type<T>(&self) -> bool
     where
         T: Any + Clone
@@ -266,6 +277,7 @@ impl OwnedArgument
     /// Acquires a raw reference handle to the object itself.
     ///
     /// This is useful for internally creating references to VariantHandle.
+    #[inline(always)]
     pub(crate) fn raw_ref(&self) -> &dyn VariantHandle
     {
         let raw_pointer =
@@ -285,6 +297,7 @@ impl OwnedArgument
     /// # Return values:
     /// Ok(val): The value matches is T, and the previous storage frees itself.
     /// Err(self): The value does not match T, the inner value should remain identical.
+    #[inline(always)]
     pub fn downcast_owned<T>(self) -> Result<T, Self>
     where
         T: Any + Clone
@@ -302,6 +315,7 @@ impl OwnedArgument
     ///
     /// # Safety
     /// This assumes that the type supplied is, in fact, T.
+    #[inline(always)]
     pub unsafe fn downcast_owned_unchecked<T>(self) -> T
     where
         T: Any + Clone
@@ -373,6 +387,7 @@ impl OwnedArgument
     /// # Return values
     /// Some(v): The cloned object is of type T,
     /// None: OwnedArgument is not type T
+    #[inline(always)]
     pub fn downcast_cloned<T>(&self) -> Option<T>
     where
         T: Any + Clone
@@ -391,6 +406,7 @@ impl OwnedArgument
     ///
     /// # Safety
     /// This assumes that the OwnedArgument is type T.
+    #[inline(always)]
     pub unsafe fn downcast_cloned_unchecked<T>(&self) -> T
     where
         T: Any + Clone
@@ -414,6 +430,7 @@ impl ops::Deref for OwnedArgument
 {
     type Target = dyn Any;
     
+    #[inline(always)]
     fn deref(&self) -> &dyn Any
     {
         unsafe
@@ -427,6 +444,7 @@ impl ops::Deref for OwnedArgument
 
 impl ops::DerefMut for OwnedArgument
 {
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut dyn Any
     {
         unsafe

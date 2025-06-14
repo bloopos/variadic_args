@@ -37,6 +37,7 @@ pub(super) struct Inlined
 
 impl Drop for Inlined
 {
+    #[inline(always)]
     fn drop(&mut self)
     {
         // This handles drop for a trait object.
@@ -53,6 +54,7 @@ impl Drop for Inlined
 impl Inlined
 {
     /// Creates a new inlined storage instance.
+    #[inline(always)]
     pub fn new<T: VariantHandle>(item: T) -> Self
     {
         let mut store = [0; INLINE_STORE];
@@ -90,6 +92,7 @@ impl Inlined
     /// This is meant to be utilized for allocations, where the storage
     /// is actually written as a raw pointer instead of being inlined as usual.
     #[must_use = "Cannot point to a null allocation!"]
+    #[inline(always)]
     pub fn uninit_allocated() -> MaybeUninit<Self>
     {
         let mut storage : MaybeUninit<Self> =
@@ -112,6 +115,7 @@ impl Inlined
     
     
     /// Determines whether the pointer is inlined or not.
+    #[inline(always)]
     pub fn is_inlined(&self) -> bool
     {
         self.is_inlined
@@ -119,6 +123,7 @@ impl Inlined
     
     
     /// Provides raw storage information for use in building a Discriminant.
+    #[inline(always)]
     pub fn storage_info(&self) -> (bool, bool)
     {
         (self.is_inlined, self.is_owned)
@@ -128,6 +133,7 @@ impl Inlined
 
 unsafe impl PointerInfo for Inlined
 {
+    #[inline(always)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle
     {
         // SAFETY: Raw pointers implement copy, meaning that
@@ -143,6 +149,7 @@ unsafe impl PointerInfo for Inlined
     }
     
     
+    #[inline(always)]
     unsafe fn raw_pointer(&self) -> *mut dyn VariantHandle
     {
         // Refer to metadata for safety.

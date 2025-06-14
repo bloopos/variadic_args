@@ -32,6 +32,7 @@ impl<'a> Deref for ArgumentsBuilder<'a>
 {
     type Target = [Argument<'a>];
     
+    #[inline(always)]
     fn deref(&self) -> &[Argument<'a>]
     {
         &self.table
@@ -41,6 +42,7 @@ impl<'a> Deref for ArgumentsBuilder<'a>
 impl ArgumentsBuilder<'_>
 {
     /// Creates a new instance of ArgumentsBuilder.
+    #[inline(always)]
     pub fn new() -> Self
     {
         Self
@@ -53,6 +55,7 @@ impl ArgumentsBuilder<'_>
     ///
     /// Even though the cap value could exceed MAX_ARG_COUNT, the output will
     /// always restrict the max capacity to MAX_ARG_COUNT elements.
+    #[inline(always)]
     pub fn with_capacity(cap: usize) -> Self
     {
         let cap = if cap <= MAX_ARG_COUNT { cap } else { MAX_ARG_COUNT };
@@ -66,12 +69,14 @@ impl ArgumentsBuilder<'_>
     /// Determines whether or not ArgumentsBuilder is full.
     ///
     /// Returns true if that is the case.
+    #[inline(always)]
     pub fn is_full(&self) -> bool
     {
         self.len() >= MAX_ARG_COUNT
     }
     
     /// A check to see if we can still insert more arguments.
+    #[inline(always)]
     fn can_insert_args(&self) -> bool
     {
         self.len() < MAX_ARG_COUNT
@@ -79,12 +84,14 @@ impl ArgumentsBuilder<'_>
     
     /// Prints out the remaining amount of arguments that we are allowed to
     /// add to the structure itself.
+    #[inline(always)]
     fn remaining(&self) -> usize
     {
         MAX_ARG_COUNT - self.len()
     }
     
     /// Returns the structure's inner capacity.
+    #[inline(always)]
     pub fn capacity(&self) -> usize
     {
         self.table.capacity()
@@ -93,6 +100,7 @@ impl ArgumentsBuilder<'_>
     /// Reserves a set amount of elements for the builder itself.
     ///
     /// This does nothing if the inner capacity is at least MAX_ARG_COUNT.
+    #[inline(always)]
     pub fn reserve(&mut self, count: usize)
     {
         if self.capacity() < MAX_ARG_COUNT
@@ -114,6 +122,7 @@ impl ArgumentsBuilder<'_>
     /// # Return values
     /// Ok(()): Able to insert the owned item.
     /// Err(owned): The arguments builder is already full.
+    #[inline(always)]
     pub fn insert_owned<T>(&mut self, owned: T)
     -> Result<(), T>
     where
@@ -134,6 +143,7 @@ impl<'a> ArgumentsBuilder<'a>
     /// # Return values
     /// Some(arg): There was an argument at said position.
     /// None: There are no arguments at idx.
+    #[inline(always)]
     pub fn remove(&mut self, idx: usize) -> Option<Argument<'a>>
     {
         if idx < self.len()
@@ -146,6 +156,7 @@ impl<'a> ArgumentsBuilder<'a>
     /// Removes the last element from the builder itself.
     ///
     /// Returns None if the builder is empty.
+    #[inline(always)]
     pub fn pop(&mut self) -> Option<Argument<'a>>
     {
         self.table.pop()
@@ -156,6 +167,7 @@ impl<'a> ArgumentsBuilder<'a>
     /// # Return values
     /// true: We are able to insert the borrowed item itself.
     /// false: The table is already full.
+    #[inline(always)]
     pub fn insert_borrowed<T>(&mut self, borrowed: &'a T) -> bool
     where
         T: Any + Clone
@@ -172,6 +184,7 @@ impl<'a> ArgumentsBuilder<'a>
     /// # Return values
     /// Ok(()): Able to insert the argument itself.
     /// Err(arg): The builder is already full.
+    #[inline(always)]
     pub fn insert_argument(&mut self, arg: Argument<'a>) -> Result<(), Argument<'a>>
     {
         if self.can_insert_args()
@@ -186,6 +199,7 @@ impl<'a> ArgumentsBuilder<'a>
     /// The returned value is the iterator's remaining contents collected into Vec<Argument<'a>>.
     /// 
     /// If said value is not empty, then the builder itself has already reached max capacity.
+    #[inline(always)]
     pub fn extend<T>(&mut self, mut args: T) -> Vec<Argument<'a>>
     where
         T: Iterator<Item = Argument<'a>> + ExactSizeIterator
@@ -209,6 +223,7 @@ impl<'a> ArgumentsBuilder<'a>
     }
     
     /// Builds the inner argument table, returning Arguments in exchange.
+    #[inline(always)]
     pub fn build(self) -> Arguments<'a>
     {
         assert!(self.len() <= MAX_ARG_COUNT);

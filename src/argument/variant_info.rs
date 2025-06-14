@@ -57,6 +57,7 @@ impl<T> VariantHandle for T
 where
     T: Any + Clone
 {
+    #[inline(always)]
     fn clone_object(&self) -> OwnedArgument
     {
         OwnedArgument::new(self.clone())

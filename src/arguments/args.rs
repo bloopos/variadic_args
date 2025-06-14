@@ -39,6 +39,7 @@ impl<'a> Deref for Arguments<'a>
 {
     type Target = [Argument<'a>];
     
+    #[inline(always)]
     fn deref(&self) -> &[Argument<'a>]
     {
         &self.table
@@ -48,6 +49,7 @@ impl<'a> Deref for Arguments<'a>
 
 impl<'a> DerefMut for Arguments<'a>
 {
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut [Argument<'a>]
     {
         &mut self.table
@@ -62,6 +64,7 @@ impl<'a> Arguments<'a>
     /// # Return values
     /// Ok(Self): Argument count is no more than MAX_ARG_COUNT.
     /// Err(args): Argument count is greater than MAX_ARG_COUNT.
+    #[inline(always)]
     pub fn from_boxed_args(args: Box<[Argument<'a>]>) -> Result<Self, Box<[Argument<'a>]>>
     {
         if args.len() <= MAX_ARG_COUNT
@@ -82,6 +85,7 @@ impl<'a> Arguments<'a>
     ///
     /// # Return values
     /// Refer to Arguments::from_boxed_args for information about return values.
+    #[inline(always)]
     pub fn from_args(args: Vec<Argument<'a>>) -> Result<Self, Vec<Argument<'a>>>
     {
         if args.len() <= MAX_ARG_COUNT
@@ -107,6 +111,7 @@ impl<'a> Arguments<'a>
     /// Ok(Self): Arg count is no more than MAX_ARG_COUNT.
     /// Err(e): Arg count is greater than MAX_ARG_COUNT. The error value is the iterator
     /// collected into Vec<Argument<'a>>.
+    #[inline(always)]
     pub fn create_from_iter<T>(args: T) -> Result<Self, Vec<Argument<'a>>>
     where
         T: Iterator<Item = Argument<'a>> + ExactSizeIterator
@@ -127,6 +132,7 @@ impl<'a> Arguments<'a>
     
     
     /// Iterates over a borrowed set of arguments.
+    #[inline(always)]
     pub fn iter(&self) -> Iter<'_, Argument<'a>>
     {
         self.table.iter()
@@ -134,6 +140,7 @@ impl<'a> Arguments<'a>
     
     
     /// Iterates over a mutable set of arguments.
+    #[inline(always)]
     pub fn iter_mut(&mut self) -> IterMut<'_, Argument<'a>>
     {
         self.table.iter_mut()
@@ -146,6 +153,7 @@ impl<'a> IntoIterator for Arguments<'a>
     type Item = Argument<'a>;
     type IntoIter = VecIntoIter<Argument<'a>>;
     
+    #[inline(always)]
     fn into_iter(self) -> VecIntoIter<Argument<'a>>
     {
         self.table.into_iter()

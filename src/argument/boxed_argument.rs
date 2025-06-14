@@ -25,6 +25,7 @@ impl BoxedArgument
     /// The following must be guaranteed for defined behavior.
     ///  * The pointer must be owned.
     ///  * The pointer must point to an actual OwnedArgument.
+    #[inline(always)]
     pub unsafe fn from_owned(owned: *mut OwnedArgument) -> Self
     {
         debug_assert!(!owned.is_null());

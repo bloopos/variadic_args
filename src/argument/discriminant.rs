@@ -17,6 +17,7 @@ impl Discriminant
     /// Creates a discriminant from an inlined flag.
     ///
     /// By definition, this should return either Inlined or Allocated.
+    #[inline(always)]
     pub fn from_owned(inlined: bool) -> Self
     {
         if inlined { Self::Inlined }
@@ -28,6 +29,7 @@ impl Discriminant
     /// owned: For determining if the pointer is owned or not,
     /// inlined: For determining the pointer's inline status. This value
     /// gets ignored if owned is false.
+    #[inline(always)]
     pub fn
     from_info((inlined, owned): (bool, bool)) -> Self
     {
