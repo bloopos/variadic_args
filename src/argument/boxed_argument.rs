@@ -4,7 +4,6 @@ use alloc::boxed::Box;
 use super::{
     discriminant::Discriminant,
     inlined::Inlined,
-    OwnedArgument,
     VariantHandle
 };
 

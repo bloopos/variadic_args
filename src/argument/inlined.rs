@@ -16,6 +16,7 @@ pub struct Inlined
 
 impl Drop for Inlined
 {
+    #[inline(always)]
     fn drop(&mut self)
     {
         let pointer = self.pointer();
@@ -36,18 +37,21 @@ impl Inlined
     /// This is not a valid pointer to the actual storage.
     /// All it provides is the vtable itself, which reading
     /// layout information should be safe.
+    #[inline(always)]
     pub unsafe fn metadata(&self) -> *mut dyn VariantHandle
     {
         self.contents
     }
 
 
+    #[inline(always)]
     pub fn storage(&self) -> *const u8
     {
         (&raw const self.contents).cast()
     }
 
 
+    #[inline(always)]
     pub fn pointer(&self) -> NonNull<dyn VariantHandle>
     {
         let metadata =
@@ -82,6 +86,7 @@ impl Inlined
 
 impl From<*mut dyn VariantHandle> for Inlined
 {
+    #[inline(always)]
     fn from(pointer: *mut dyn VariantHandle) -> Self
     {
         Self

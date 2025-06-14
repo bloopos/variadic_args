@@ -6,6 +6,7 @@ use core::{
     any::Any,
     fmt,
     mem,
+    ptr::NonNull,
     ops
 };
 
@@ -15,6 +16,7 @@ use std::{
     fmt,
     any::Any,
     mem,
+    ptr::NonNull,
     ops
 };
 
@@ -22,7 +24,7 @@ use super::{
     discriminant::Discriminant,
     boxed_argument::BoxedArgument,
     inlined::Inlined,
-    variant_info::{PointerInfo, VariantHandle}
+    variant_info::VariantHandle
 };
 
 /// An owned argument.
@@ -35,7 +37,7 @@ pub struct OwnedArgument
     /// Pointer storage. This acts as a wrapper for both
     /// inlined and boxed storage. Due to inline behavior, we
     /// cannot use this pointer directly.
-    store: *mut dyn VariantHandle,
+    pointer: *mut dyn VariantHandle,
     inlined: bool,
     owned: bool
 }
@@ -45,22 +47,12 @@ impl fmt::Debug for OwnedArgument
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
-        let is_inlined = matches!(self.owned_discriminant(), Discriminant::Inlined);
-        
         let mut current = f.debug_struct("OwnedArgument");
                  
-        current.field("is_inlined", &is_inlined);
+        current.field("is_inlined", &self.inlined);
         
-        let raw_pointer =
-        if is_inlined
-        {
-            unsafe { self.inner_inlined().pointer().as_ptr() }
-        } else { unsafe { self.inner_boxed() } };
-        
-        let pointer : *const dyn Any =
-        raw_pointer.cast_const() as *const _ as *const dyn Any;
-        
-        let ref_ = unsafe { &*pointer };
+        let ref_ : &dyn Any =
+        unsafe { self.pointer().as_ref() };
         
         current.field("storage", &ref_);
         
@@ -73,12 +65,11 @@ impl Clone for OwnedArgument
     #[inline(always)]
     fn clone(&self) -> Self
     {
-        let pointer : *const dyn VariantHandle =
-        unsafe { self.raw_pointer().cast_const() };
-        
         unsafe
         {
-            (*pointer).clone_object()
+            self.pointer()
+                .as_ref()
+                .clone_object()
         }
     }
 }
@@ -91,38 +82,12 @@ impl Drop for OwnedArgument
         let _ =
         unsafe
         {
-            BoxedArgument::from_owned(self.store,
+            BoxedArgument::from_owned(self.pointer,
                                       self.owned_discriminant())
         };
     }
 }
 
-unsafe impl PointerInfo for OwnedArgument
-{
-    #[inline(always)]
-    unsafe fn metadata(&self) -> *mut dyn VariantHandle
-    {
-        // Safety: by matching discriminants, we are able to get the correct metadata.
-        match self.owned_discriminant()
-        {
-            Discriminant::Inlined => unsafe { self.inner_inlined().metadata() },
-            Discriminant::Allocated => unsafe { self.inner_boxed() },
-            _ => unreachable!()
-        }
-    }
-    
-    #[inline(always)]
-    unsafe fn raw_pointer(&self) -> *mut dyn VariantHandle
-    {
-        // Safety: by matching discriminants, we are able to get the correct raw pointer.
-        match self.owned_discriminant()
-        {
-            Discriminant::Inlined => unsafe { self.inner_inlined().pointer().as_ptr() },
-            Discriminant::Allocated => unsafe  { self.inner_boxed() },
-            _ => unreachable!()
-        }
-    }
-}
 
 #[cfg(debug_assertions)]
 fn pointer_matches<T>(pointer: *mut dyn VariantHandle) -> bool
@@ -161,7 +126,7 @@ impl OwnedArgument
 
             Self
             {
-                store:
+                pointer:
                 unsafe
                 {
                     store.assume_init()
@@ -174,14 +139,33 @@ impl OwnedArgument
         {
             let boxed : Box<dyn VariantHandle> = Box::new(item);
             
-            let store = Box::into_raw(boxed);
+            let pointer = Box::into_raw(boxed);
             
             Self
             {
-                store,
+                pointer,
                 inlined: false,
                 owned: true
             }
+        }
+    }
+
+    #[inline(always)]
+    unsafe fn pointer_metadata(&self) -> *mut dyn VariantHandle
+    {
+        self.pointer
+    }
+
+    #[inline(always)]
+    fn pointer(&self) -> NonNull<dyn VariantHandle>
+    {
+        match self.owned_discriminant()
+        {
+            Discriminant::Inlined =>
+            unsafe { self.inner_inlined().pointer() },
+            Discriminant::Allocated =>
+            unsafe { NonNull::new_unchecked(self.pointer) },
+            _ => unreachable!()
         }
     }
     
@@ -221,21 +205,11 @@ impl OwnedArgument
     {
         unsafe
         {
-            &*(&raw const self.store)
+            &*(&raw const self.pointer)
                 .cast::<Inlined>()
         }
     }
-    
-    /// Acquires the inner pointer to the allocated storage.
-    ///
-    /// # Safety
-    /// This assumes that the storage is allocated.
-    #[inline(always)]
-    unsafe fn inner_boxed(&self) -> *mut dyn VariantHandle
-    {
-        self.store
-    }
-    
+
     /// A "wrapper" for `Any::is::<T>()`.
     ///
     /// In case Any interferes with dereferencing the OwnedArgument, use the following function instead.
@@ -247,8 +221,8 @@ impl OwnedArgument
         unsafe
         {
             let metadata : *const dyn Any =
-            self.metadata().cast_const() as *const _ as *const dyn Any;
-            
+            self.pointer_metadata().cast_const() as *const _ as *const dyn Any;
+
             (*metadata).is::<T>()
         }
     }
@@ -259,15 +233,10 @@ impl OwnedArgument
     #[inline(always)]
     pub(crate) fn raw_ref<'a>(&'a self) -> &'a dyn VariantHandle
     {
-        let raw_pointer =
         unsafe
         {
-            self.raw_pointer()
-        };
-
-        unsafe
-        {
-            &*raw_pointer.cast_const()
+            self.pointer()
+                .as_ref()
         }
     }
     
@@ -299,12 +268,12 @@ impl OwnedArgument
     where
         T: Any + Clone
     {
-        let mut owned = mem::ManuallyDrop::new(self);
+        let owned = mem::ManuallyDrop::new(self);
         
         let boxed =
         unsafe
         {
-            BoxedArgument::from_owned(owned.store,
+            BoxedArgument::from_owned(owned.pointer,
                                       owned.owned_discriminant())
         };
         
@@ -389,16 +358,16 @@ impl OwnedArgument
     where
         T: Any + Clone
     {
-        let pointer = unsafe { self.raw_pointer() };
+        let pointer = self.pointer();
         
         #[cfg(debug_assertions)]
         {
-            assert!(pointer_matches::<T>(pointer));
+            assert!(pointer_matches::<T>(pointer.as_ptr()));
         }
         
         unsafe
         {
-            (*pointer.cast::<T>()).clone()
+            pointer.cast::<T>().as_ref().clone()
         }
     }
 }
@@ -413,8 +382,8 @@ impl ops::Deref for OwnedArgument
     {
         unsafe
         {
-            &*self.raw_pointer()
-                  .cast_const()
+            self.pointer()
+                .as_ref()
         }
     }
 }
@@ -427,7 +396,8 @@ impl ops::DerefMut for OwnedArgument
     {
         unsafe
         {
-            &mut *self.raw_pointer()
+            self.pointer()
+                .as_mut()
         }
     }
 }
