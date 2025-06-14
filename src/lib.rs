@@ -17,6 +17,9 @@ extern crate alloc;
 mod argument;
 mod arguments;
 
+#[cfg(feature = "keyword_arguments")]
+pub mod keyword_arguments;
+
 pub use argument::{OwnedArgument, Argument, ArgumentKind};
 pub use arguments::{Arguments, ArgumentsBuilder, MAX_ARG_COUNT};
 //pub mod borrowed_arg;

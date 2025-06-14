@@ -8,7 +8,9 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
+smartstring = { version = "1.0.1", optional = true }
 
 [features]
 default = []
 no_std = []
+keyword_arguments = ["dep:smartstring"]
