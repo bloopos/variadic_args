@@ -12,9 +12,12 @@ use std::{
     mem::{ManuallyDrop, MaybeUninit}
 };
 
+/// The kind of argument returned from Argument::into_inner.
 pub enum ArgumentKind<'a>
 {
+    /// The inner contents are borrowed.
     Borrowed(&'a dyn Any),
+    /// The inner contents are owned.
     Owned(OwnedArgument)
 }
 
@@ -24,27 +27,34 @@ pub(super) enum RawArgument<'a>
     Owned(OwnedArgument)
 }
 
+/// A union structure aimed at managing a more compact CoW instance.
 pub(super) union InnerArgument<'a>
 {
-    // This points to owned storage.
+    /// This points to owned storage. Even if it is not initialized, it still
+    /// points to valuable data, such as determining the argument's current state.
     owned: ManuallyDrop<OwnedArgument>,
-    // 
+    /// This pointer, if written, will only overwrite the main, owned storage. It should
+    /// not overwrite the essential information, such as owned/inlined status.
     ref_: &'a dyn VariantHandle
 }
 
 impl InnerArgument<'_>
 {
+    /// Creates a new owned argument.
     pub fn new_owned(item: OwnedArgument) -> Self
     {
         let owned = ManuallyDrop::new(item);
         
-        let output = Self { owned };
-        
-        output
+        Self
+        {
+            owned
+        }
     }
     
+    /// Provides the discriminant for the inner storage.
     pub fn discriminant(&self) -> Discriminant
     {
+        // Safety: We are only accessing discriminant information.
         unsafe
         {
             self.owned.discriminant()
@@ -56,7 +66,7 @@ impl InnerArgument<'_>
         matches!(self.discriminant(), Discriminant::Inlined | Discriminant::Allocated )
     }
     
-    pub fn is_ref(&self) -> bool
+    pub fn is_borrowed(&self) -> bool
     {
         matches!(self.discriminant(), Discriminant::Borrowed)
     }
@@ -91,8 +101,10 @@ impl InnerArgument<'_>
 
 impl<'a> InnerArgument<'a>
 {
+    /// Creates a new instance from a borrowed trait handle.
     pub fn new_ref(ref_: &'a dyn VariantHandle) -> Self
     {
+        // Safety: This lets us "initialize" a borrowed instance.
         let mut output : Self = unsafe { MaybeUninit::zeroed().assume_init() };
         
         output.ref_ = ref_;
@@ -100,6 +112,7 @@ impl<'a> InnerArgument<'a>
         output
     }
     
+    /// Creates a new object based around a reference to the soucre object.
     pub fn as_ref(&'a self) -> Self
     {
         let ref_ =
@@ -112,6 +125,12 @@ impl<'a> InnerArgument<'a>
         Self::new_ref(ref_)
     }
     
+    /// Takes the inner contents of the storage itself.
+    ///
+    /// # Safety
+    /// This assumes that not only the result must be used,
+    /// but the function should be called once.
+    #[must_use = "Potential memory leak."]
     pub unsafe fn as_argument(&mut self) -> RawArgument<'a>
     {
         match self.discriminant()
@@ -135,18 +154,19 @@ impl<'a> InnerArgument<'a>
         }
     }
     
-    pub unsafe fn into_inner(self) -> ArgumentKind<'a>
+    pub fn into_inner(self) -> ArgumentKind<'a>
     {
-        if self.is_owned()
+        match self.discriminant()
         {
-            ArgumentKind::Owned(ManuallyDrop::into_inner(unsafe { self.owned }))
-        }
-        else
-        {
-            ArgumentKind::Borrowed(unsafe { self.ref_ })
+            Discriminant::Borrowed => ArgumentKind::Borrowed(unsafe { self.inner_ref() }),
+            _ => ArgumentKind::Owned(ManuallyDrop::into_inner(unsafe { self.owned }))
         }
     }
     
+    /// Acquires the inner reference to the object's reference.
+    ///
+    /// # Safety
+    /// This assumes that the storage itself is bororwed.
     pub unsafe fn inner_ref(&self) -> &'a dyn VariantHandle
     {
         unsafe

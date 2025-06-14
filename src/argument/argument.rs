@@ -105,7 +105,7 @@ impl Argument<'_>
     pub fn is_borrowed(&self) -> bool
     {
         self.inner
-            .is_ref()
+            .is_borrowed()
     }
     
     pub fn to_mut(&mut self) -> &mut dyn Any
