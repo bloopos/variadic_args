@@ -32,8 +32,12 @@ use super::{
 /// items whose size is no more than 8 bytes for 64-bit systems (or 4 for 32-bit systems).
 pub struct OwnedArgument
 {
-    /// The inner storage. It is uninitialized to maintain pointer compatibility.
-    store: mem::MaybeUninit<Inlined>
+    /// Pointer storage. This acts as a wrapper for both
+    /// inlined and boxed storage. Due to inline behavior, we
+    /// cannot use this pointer directly.
+    store: *mut dyn VariantHandle,
+    inlined: bool,
+    owned: bool
 }
 
 impl fmt::Debug for OwnedArgument
@@ -50,7 +54,7 @@ impl fmt::Debug for OwnedArgument
         let raw_pointer =
         if is_inlined
         {
-            unsafe { self.inner_inlined().raw_pointer() }
+            unsafe { self.inner_inlined().pointer().as_ptr() }
         } else { unsafe { self.inner_boxed() } };
         
         let pointer : *const dyn Any =
@@ -84,12 +88,11 @@ impl Drop for OwnedArgument
     #[inline(always)]
     fn drop(&mut self)
     {
-        let raw_pointer = &raw mut *self;
-        
         let _ =
         unsafe
         {
-            BoxedArgument::from_owned(raw_pointer)
+            BoxedArgument::from_owned(self.store,
+                                      self.owned_discriminant())
         };
     }
 }
@@ -114,7 +117,7 @@ unsafe impl PointerInfo for OwnedArgument
         // Safety: by matching discriminants, we are able to get the correct raw pointer.
         match self.owned_discriminant()
         {
-            Discriminant::Inlined => unsafe { self.inner_inlined().raw_pointer() },
+            Discriminant::Inlined => unsafe { self.inner_inlined().pointer().as_ptr() },
             Discriminant::Allocated => unsafe  { self.inner_boxed() },
             _ => unreachable!()
         }
@@ -149,34 +152,36 @@ impl OwnedArgument
     {
         if size_of::<T>() <= size_of::<*const ()>()
         {
+            let mut store = mem::MaybeUninit::<*mut dyn VariantHandle>::new((&raw const item).cast_mut());
+
+            unsafe
+            {
+                store.as_mut_ptr().cast::<T>().write(item);
+            }
+
             Self
             {
-                store: mem::MaybeUninit::new(Inlined::new(item))
+                store:
+                unsafe
+                {
+                    store.assume_init()
+                },
+                inlined: true,
+                owned: true
             }
         }
         else
         {
-            // Use a custom Inlined function to "initialize" an
-            // allocated instance of storage.
-            let mut output =
-            Self
-            {
-                store: Inlined::uninit_allocated()
-            };
-            
             let boxed : Box<dyn VariantHandle> = Box::new(item);
             
-            let raw_pointer = Box::into_raw(boxed);
+            let store = Box::into_raw(boxed);
             
-            let write_pointer : *mut *mut dyn VariantHandle =
-            output.store.as_mut_ptr().cast();
-            
-            unsafe
+            Self
             {
-                write_pointer.write(raw_pointer);
+                store,
+                inlined: false,
+                owned: true
             }
-            
-            output
         }
     }
     
@@ -186,29 +191,14 @@ impl OwnedArgument
     #[inline(always)]
     pub(crate) fn owned_discriminant(&self) -> Discriminant
     {
-        // Safety: Owned pointer is initialized with it being owned as true.
-        let is_inlined =
-        unsafe {
-            self.inner_inlined()
-                .is_inlined()
-        };
-        
-        Discriminant::from_owned(is_inlined)
+        Discriminant::from_owned(self.inlined)
     }
     
     /// Acquires the discriminant based around the OwnedPointer's storage information.
     #[inline(always)]
     pub(crate) fn discriminant(&self) -> Discriminant
     {
-        // Safety: We only need to know the info about the storage itself.
-        let storage_info =
-        unsafe
-        {
-            self.inner_inlined()
-                .storage_info()
-        };
-        
-        Discriminant::from_info(storage_info)
+        Discriminant::from_info((self.inlined, self.owned))
     }
     
     /// Checks if the storage is inlined or not.
@@ -217,12 +207,7 @@ impl OwnedArgument
     #[cfg(test)]
     pub(crate) fn is_inlined(&self) -> bool
     {
-        // Safety: We are only accessing one field.
-        unsafe
-        {
-            self.inner_inlined()
-                .is_inlined()
-        }
+        self.inlined
     }
     
     /// Acquires the inner pointer to the inlined storage.
@@ -236,8 +221,8 @@ impl OwnedArgument
     {
         unsafe
         {
-            self.store
-                .assume_init_ref()
+            &*(&raw const self.store)
+                .cast::<Inlined>()
         }
     }
     
@@ -248,13 +233,7 @@ impl OwnedArgument
     #[inline(always)]
     unsafe fn inner_boxed(&self) -> *mut dyn VariantHandle
     {
-        unsafe
-        {
-            self.store
-                .as_ptr()
-                .cast::<*mut dyn VariantHandle>()
-                .read()
-        }
+        self.store
     }
     
     /// A "wrapper" for `Any::is::<T>()`.
@@ -278,14 +257,14 @@ impl OwnedArgument
     ///
     /// This is useful for internally creating references to VariantHandle.
     #[inline(always)]
-    pub(crate) fn raw_ref(&self) -> &dyn VariantHandle
+    pub(crate) fn raw_ref<'a>(&'a self) -> &'a dyn VariantHandle
     {
         let raw_pointer =
         unsafe
         {
             self.raw_pointer()
         };
-        
+
         unsafe
         {
             &*raw_pointer.cast_const()
@@ -322,12 +301,11 @@ impl OwnedArgument
     {
         let mut owned = mem::ManuallyDrop::new(self);
         
-        let raw_pointer = &raw mut *owned;
-        
         let boxed =
         unsafe
         {
-            BoxedArgument::from_owned(raw_pointer)
+            BoxedArgument::from_owned(owned.store,
+                                      owned.owned_discriminant())
         };
         
         match boxed
@@ -366,7 +344,7 @@ impl OwnedArgument
             {
                 #[cfg(debug_assertions)]
                 {
-                    let raw_pointer = unsafe { i.raw_pointer() };
+                    let raw_pointer = i.pointer().as_ptr();
                     assert!(pointer_matches::<T>(raw_pointer));
                 }
                 

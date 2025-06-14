@@ -26,18 +26,11 @@ impl BoxedArgument
     ///  * The pointer must be owned.
     ///  * The pointer must point to an actual OwnedArgument.
     #[inline(always)]
-    pub unsafe fn from_owned(owned: *mut OwnedArgument) -> Self
+    pub unsafe fn from_owned(store: *mut dyn VariantHandle,
+                             discriminant: Discriminant) -> Self
     {
-        debug_assert!(!owned.is_null());
-        
-        let discriminant =
-        {
-            let ref_ =
-            unsafe { &*owned.cast_const() };
-            
-            ref_.owned_discriminant()
-        };
-        
+        debug_assert!(!store.is_null());
+
         // Safety:
         //
         // As long as the discriminant matches correctly,
@@ -46,25 +39,14 @@ impl BoxedArgument
         {
             Discriminant::Inlined =>
             {
-                let pointer : *mut Inlined =
-                owned.cast();
-                
-                let inlined = unsafe { pointer.read() };
-                
+                let inlined = Inlined::from(store);
+
                 Self::Inlined(inlined)
             }
             Discriminant::Allocated =>
             {
-                let object_pointer : *mut dyn VariantHandle =
-                unsafe
-                {
-                    owned
-                    .cast::<*mut dyn VariantHandle>()
-                    .read()
-                };
-                
-                let allocated = unsafe { Box::from_raw(object_pointer) };
-                
+                let allocated = unsafe { Box::from_raw(store) };
+
                 Self::Allocated(allocated)
             }
             _ => unreachable!()
