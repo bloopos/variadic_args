@@ -1,5 +1,16 @@
 #![cfg_attr(feature = "no_std", no_std)]
 
+//! A crate for handling variadic arguments.
+//!
+//! The documentation is unfinished for the time being for the time being.
+//!
+//! Use [ArgumentsBuilder] for building arguments.
+//!
+//! Use [Arguments] for parsing arguments.
+//!
+//! [ArgumentsBuilder]: ArgumentsBuilder
+//! [Arguments]: Arguments
+
 #[cfg(no_std)]
 extern crate alloc;
 

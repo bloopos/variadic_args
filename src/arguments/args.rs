@@ -107,7 +107,7 @@ impl<'a> Arguments<'a>
     /// Ok(Self): Arg count is no more than MAX_ARG_COUNT.
     /// Err(e): Arg count is greater than MAX_ARG_COUNT. The error value is the iterator
     /// collected into Vec<Argument<'a>>.
-    pub fn from_iter<T>(args: T) -> Result<Self, Vec<Argument<'a>>>
+    pub fn create_from_iter<T>(args: T) -> Result<Self, Vec<Argument<'a>>>
     where
         T: Iterator<Item = Argument<'a>> + ExactSizeIterator
     {

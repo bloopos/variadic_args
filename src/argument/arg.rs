@@ -22,6 +22,13 @@ use inner::{RawArgument, InnerArgument};
 
 pub use inner::ArgumentKind;
 
+/// A variant item that implements Copy-on-Write.
+///
+/// It acts similarly to a [Cow], except for two things:
+/// 1. It is encapsulated, meaning that the inner contents cannot be accessed.
+/// 2. The storage is handled differently compared to [Cow], which allows for a smaller type size.
+///
+/// [Cow]: std::borrow::Cow
 #[repr(transparent)]
 pub struct Argument<'a>
 {

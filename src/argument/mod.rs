@@ -10,6 +10,6 @@ pub use owned::OwnedArgument;
 
 pub(crate) use variant_info::VariantHandle;
 
-mod argument;
+mod arg;
 
-pub use argument::{Argument, ArgumentKind};
+pub use arg::{Argument, ArgumentKind};

@@ -247,7 +247,7 @@ impl OwnedArgument
         }
     }
     
-    /// A "wrapper" for Any::is::<T>().
+    /// A "wrapper" for `Any::is::<T>()`.
     ///
     /// In case Any interferes with dereferencing the OwnedArgument, use the following function instead.
     pub fn is_type<T>(&self) -> bool
@@ -266,7 +266,7 @@ impl OwnedArgument
     /// Acquires a raw reference handle to the object itself.
     ///
     /// This is useful for internally creating references to VariantHandle.
-    pub(crate) fn raw_ref<'a>(&'a self) -> &'a dyn VariantHandle
+    pub(crate) fn raw_ref(&self) -> &dyn VariantHandle
     {
         let raw_pointer =
         unsafe

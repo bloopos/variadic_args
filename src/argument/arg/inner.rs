@@ -14,7 +14,7 @@ use std::{
     mem::{ManuallyDrop, MaybeUninit}
 };
 
-/// The kind of argument returned from Argument::into_inner.
+/// The argument kind returned from Argument::into_inner.
 #[derive(Debug)]
 pub enum ArgumentKind<'a>
 {
