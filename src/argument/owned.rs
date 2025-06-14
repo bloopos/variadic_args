@@ -1,5 +1,5 @@
 #[cfg(no_std)]
-use alloc::{alloc, boxed::Box};
+use ::alloc::{alloc, boxed::Box};
 
 #[cfg(no_std)]
 use core::{
