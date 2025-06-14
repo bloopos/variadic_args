@@ -322,7 +322,10 @@ impl OwnedArgument
             {
                 let raw_pointer = Box::into_raw(a);
                 
-                debug_assert!(pointer_matches::<T>(raw_pointer));
+                #[cfg(debug_assertions)]
+                {
+                    assert!(pointer_matches::<T>(raw_pointer));
+                }
                 
                 let output =
                 {
@@ -394,7 +397,10 @@ impl OwnedArgument
     {
         let pointer = unsafe { self.raw_pointer() };
         
-        debug_assert!(pointer_matches::<T>(pointer));
+        #[cfg(debug_assertions)]
+        {
+            assert!(pointer_matches::<T>(pointer));
+        }
         
         unsafe
         {

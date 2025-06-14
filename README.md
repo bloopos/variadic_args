@@ -1,4 +1,4 @@
-# variadic_args
+# variadic_arguments
 A crate that implements variadic arguments into Rust.
 
 # TODO List
