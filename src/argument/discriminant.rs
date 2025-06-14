@@ -1,12 +1,12 @@
 /// A discriminant flag.
 ///
-/// This is meant to similify the code flow for Argument status.
+/// This is meant to simplify the code flow for Argument status.
 #[repr(u8)]
 pub enum Discriminant
 {
     /// The storage pointer is owned and inlined.
     Inlined,
-    /// The stroage pointer is owned and allocated.
+    /// The storage pointer is owned and allocated.
     Allocated,
     /// The storage pointer is borrowed.
     Borrowed

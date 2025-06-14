@@ -19,7 +19,7 @@ use super::{Arguments, MAX_ARG_COUNT};
 
 /// A structure for creating Arguments.
 ///
-/// This gurantees that the amount of arguments will be no
+/// This guarantees that the amount of arguments will be no
 /// more than MAX_ARG_COUNT.
 #[derive(Clone, Debug, Default)]
 pub struct ArgumentsBuilder<'a>

@@ -127,7 +127,7 @@ impl<'a> InnerArgument<'a>
         output
     }
     
-    /// Creates a new object based around a reference to the soucre object.
+    /// Creates a new object based around a reference to the source object.
     pub fn as_ref(&'a self) -> Self
     {
         let ref_ =
@@ -181,7 +181,7 @@ impl<'a> InnerArgument<'a>
     /// Acquires the inner reference to the object's reference.
     ///
     /// # Safety
-    /// This assumes that the storage itself is bororwed.
+    /// This assumes that the storage itself is borrowed.
     pub unsafe fn inner_ref(&self) -> &'a dyn VariantHandle
     {
         unsafe

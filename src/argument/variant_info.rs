@@ -28,7 +28,7 @@ pub(super) unsafe trait PointerInfo
     
     /// Returns a pointer to a variant object.
     ///
-    /// In other words, the implentator for this object returns a valid pointer to
+    /// In other words, the implementation for this object returns a valid pointer to
     /// the variant.
     ///
     /// # Safety
@@ -49,7 +49,7 @@ pub(crate) trait VariantHandle : Any
     ///
     /// Internally, it clones the object first. Then, instead of returning Self,
     /// it instead returns a creates an OwnedArgument from the cloned object. All of
-    /// this workload is meant to maintain dyn compatability.
+    /// this workload is meant to maintain dyn compatibility.
     fn clone_object(&self) -> OwnedArgument;
 }
 

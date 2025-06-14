@@ -52,7 +52,7 @@ impl Drop for Inlined
 
 impl Inlined
 {
-    /// Creates a new inlined stroage instance.
+    /// Creates a new inlined storage instance.
     pub fn new<T: VariantHandle>(item: T) -> Self
     {
         let mut store = [0; INLINE_STORE];

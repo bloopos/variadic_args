@@ -242,7 +242,7 @@ impl Argument<'_>
         }
     }
     
-    /// Binding to downcasting a reference to T without checks.
+    /// Binding to downcast a reference to T without checks.
     ///
     /// This is similar to Any::downcast_ref_unchecked, except for
     /// the fact that we can use it outside of nightly. When the former
@@ -301,7 +301,7 @@ impl<'a> Argument<'a>
         }
     }
     
-    /// Consumes the argument, returing a wrapper to the inner argument itself.
+    /// Consumes the argument, returning a wrapper to the inner argument itself.
     fn inner_contents(self) -> RawArgument<'a>
     {
         let mut store = ManuallyDrop::new(self);

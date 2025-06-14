@@ -32,7 +32,7 @@ use super::{
 /// items whose size is no more than 8 bytes for 64-bit systems (or 4 for 32-bit systems).
 pub struct OwnedArgument
 {
-    /// The inner storage. It is uninitialized to maintain pointer compatability.
+    /// The inner storage. It is uninitialized to maintain pointer compatibility.
     store: mem::MaybeUninit<Inlined>
 }
 
