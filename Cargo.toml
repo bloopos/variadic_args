@@ -2,6 +2,10 @@
 name = "variadic_args"
 version = "0.1.0"
 edition = "2024"
+description = "Implements variadic arguments into Rust."
+repository = "https://github.com/bloopos/variadic_args"
+license-file = "LICENSE.txt"
+readme = "README.md"
 
 [dependencies]
 
