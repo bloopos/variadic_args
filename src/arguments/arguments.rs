@@ -27,7 +27,7 @@ use crate::Argument;
 /// While the inner storage's size is fixed, the storage
 /// can be accessed mutably.
 #[repr(transparent)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Arguments<'a>
 {
     /// The inner table for storing a slice of arguments.

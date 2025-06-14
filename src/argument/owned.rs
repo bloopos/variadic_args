@@ -4,6 +4,7 @@ use alloc::{alloc, boxed::Box};
 #[cfg(no_std)]
 use core::{
     any::Any,
+    fmt,
     mem,
     ops
 };
@@ -11,6 +12,7 @@ use core::{
 #[cfg(not(no_std))]
 use std::{
     alloc,
+    fmt,
     any::Any,
     mem,
     ops
@@ -32,6 +34,33 @@ pub struct OwnedArgument
 {
     /// The inner storage. It is uninitialized to maintain pointer compatability.
     store: mem::MaybeUninit<Inlined>
+}
+
+impl fmt::Debug for OwnedArgument
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        let is_inlined = matches!(self.owned_discriminant(), Discriminant::Inlined);
+        
+        let mut current = f.debug_struct("OwnedArgument");
+                 
+        current.field("is_inlined", &is_inlined);
+        
+        let raw_pointer =
+        if is_inlined
+        {
+            unsafe { self.inner_inlined().raw_pointer() }
+        } else { unsafe { self.inner_boxed() } };
+        
+        let pointer : *const dyn Any =
+        raw_pointer.cast_const() as *const _ as *const dyn Any;
+        
+        let ref_ = unsafe { &*pointer };
+        
+        current.field("storage", &ref_);
+        
+        current.finish()
+    }
 }
 
 impl Clone for OwnedArgument

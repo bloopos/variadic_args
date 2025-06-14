@@ -1,6 +1,7 @@
 #[cfg(no_std)]
 use core::{
     any::Any,
+    fmt::Debug,
     mem::{ManuallyDrop, MaybeUninit},
 };
 
@@ -9,10 +10,12 @@ use crate::{argument::VariantHandle,argument::discriminant::Discriminant, OwnedA
 #[cfg(not(no_std))]
 use std::{
     any::Any,
+    fmt::Debug,
     mem::{ManuallyDrop, MaybeUninit}
 };
 
 /// The kind of argument returned from Argument::into_inner.
+#[derive(Debug)]
 pub enum ArgumentKind<'a>
 {
     /// The inner contents are borrowed.
@@ -95,6 +98,18 @@ impl InnerArgument<'_>
             {
                 &mut *self.owned
             }
+        }
+    }
+    
+    /// Provides a debug handle to an owned pointer.
+    ///
+    /// # Safety
+    /// The inner contents must be owned.
+    pub unsafe fn owned_debug_handle(&self) -> &dyn Debug
+    {
+        unsafe
+        {
+            &*self.owned
         }
     }
 }

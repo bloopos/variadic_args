@@ -3,6 +3,7 @@ mod inner;
 #[cfg(no_std)]
 use core::{
     any::Any,
+    fmt,
     ops::Deref,
     mem::ManuallyDrop
 };
@@ -10,6 +11,7 @@ use core::{
 #[cfg(not(no_std))]
 use std::{
     any::Any,
+    fmt,
     ops::Deref,
     mem::ManuallyDrop
 };
@@ -24,6 +26,28 @@ pub use inner::ArgumentKind;
 pub struct Argument<'a>
 {
     inner: InnerArgument<'a>
+}
+
+impl fmt::Debug for Argument<'_>
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        match self.inner.discriminant()
+        {
+            Discriminant::Borrowed =>
+            {
+                f.debug_tuple("Argument::Borrowed")
+                 .field(&self.inner.to_ref())
+                 .finish()
+            }
+            _ =>
+            {
+                f.debug_tuple("Argument::Owned")
+                 .field(unsafe { self.inner.owned_debug_handle() })
+                 .finish()
+            }
+        }
+    }
 }
 
 impl Drop for Argument<'_>
