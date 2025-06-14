@@ -2,7 +2,7 @@
 
 //! A crate for handling variadic arguments.
 //!
-//! The documentation is unfinished for the time being for the time being.
+//! The documentation is unfinished for the time being.
 //!
 //! Use [ArgumentsBuilder] for building arguments.
 //!
