@@ -55,6 +55,7 @@ impl InnerArgument<'_>
         }
     }
     
+    
     /// Provides the discriminant for the inner storage.
     #[inline(always)]
     pub fn discriminant(&self) -> Discriminant
@@ -62,9 +63,11 @@ impl InnerArgument<'_>
         // Safety: We are only accessing discriminant information.
         unsafe
         {
-            self.owned.discriminant()
+            self.owned
+                .discriminant()
         }
     }
+    
     
     #[inline(always)]
     pub fn is_owned(&self) -> bool
@@ -72,11 +75,13 @@ impl InnerArgument<'_>
         matches!(self.discriminant(), Discriminant::Inlined | Discriminant::Allocated )
     }
     
+    
     #[inline(always)]
     pub fn is_borrowed(&self) -> bool
     {
         matches!(self.discriminant(), Discriminant::Borrowed)
     }
+    
     
     #[inline(always)]
     pub fn to_mut(&mut self) -> &mut dyn Any
@@ -85,8 +90,13 @@ impl InnerArgument<'_>
         {
             Discriminant::Borrowed =>
             {
-                let owned = unsafe { self.ref_.clone_object() };
-                *self = Self::new_owned(owned);
+                let owned : OwnedArgument = 
+                unsafe
+                {
+                    self.ref_.clone_object()
+                };
+                
+                *self = InnerArgument::new_owned(owned);
                 
                 match self.discriminant()
                 {
@@ -106,6 +116,7 @@ impl InnerArgument<'_>
         }
     }
     
+    
     /// Provides a debug handle to an owned pointer.
     ///
     /// # Safety
@@ -119,6 +130,7 @@ impl InnerArgument<'_>
         }
     }
 }
+
 
 impl<'a> InnerArgument<'a>
 {
@@ -141,7 +153,7 @@ impl<'a> InnerArgument<'a>
         let ref_ =
         match self.discriminant()
         {
-            Discriminant::Borrowed => unsafe { self.inner_ref() },
+            Discriminant::Borrowed => unsafe { self.ref_unchecked() },
             _ => unsafe { self.owned.raw_ref() }
         };
         
@@ -155,13 +167,13 @@ impl<'a> InnerArgument<'a>
     /// but the function should be called once.
     #[must_use = "Potential memory leak."]
     #[inline(always)]
-    pub unsafe fn as_argument(&mut self) -> RawArgument<'a>
+    pub unsafe fn into_raw_argument(&mut self) -> RawArgument<'a>
     {
         match self.discriminant()
         {
             Discriminant::Borrowed =>
             {
-                let ref_ = unsafe { self.inner_ref() };
+                let ref_ = unsafe { self.ref_unchecked() };
                 
                 RawArgument::Borrowed(ref_)
             }
@@ -178,22 +190,24 @@ impl<'a> InnerArgument<'a>
         }
     }
     
+    
     #[inline(always)]
     pub fn into_inner(self) -> ArgumentKind<'a>
     {
         match self.discriminant()
         {
-            Discriminant::Borrowed => ArgumentKind::Borrowed(unsafe { self.inner_ref() }),
+            Discriminant::Borrowed => ArgumentKind::Borrowed(unsafe { self.ref_unchecked() }),
             _ => ArgumentKind::Owned(ManuallyDrop::into_inner(unsafe { self.owned }))
         }
     }
+    
     
     /// Acquires the inner reference to the object's reference.
     ///
     /// # Safety
     /// This assumes that the storage itself is borrowed.
     #[inline(always)]
-    pub unsafe fn inner_ref(&self) -> &'a dyn VariantHandle
+    pub unsafe fn ref_unchecked(&self) -> &'a dyn VariantHandle
     {
         unsafe
         {
@@ -201,12 +215,13 @@ impl<'a> InnerArgument<'a>
         }
     }
     
+    
     #[inline(always)]
     pub fn to_ref(&'a self) -> &'a dyn Any
     {
         match self.discriminant()
         {
-            Discriminant::Borrowed => unsafe { self.inner_ref() },
+            Discriminant::Borrowed => unsafe { self.ref_unchecked() },
             _ => unsafe { self.owned.raw_ref() }
         }
     }

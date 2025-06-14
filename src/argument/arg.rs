@@ -35,12 +35,13 @@ pub struct Argument<'a>
     inner: InnerArgument<'a>
 }
 
+
 impl fmt::Debug for Argument<'_>
 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
-        match self.inner.discriminant()
+        match self.discriminant()
         {
             Discriminant::Borrowed =>
             {
@@ -58,14 +59,16 @@ impl fmt::Debug for Argument<'_>
     }
 }
 
+
 impl Drop for Argument<'_>
 {
     #[inline(always)]
     fn drop(&mut self)
     {
-        let _ = unsafe { self.inner.as_argument() };
+        let _ = unsafe { self.inner.into_raw_argument() };
     }
 }
+
 
 impl<'a> Clone for Argument<'a>
 {
@@ -73,11 +76,15 @@ impl<'a> Clone for Argument<'a>
     fn clone(&self) -> Self
     {
         let inner =
-        match self.inner.discriminant()
+        match self.discriminant()
         {
             Discriminant::Borrowed =>
             {
-                let ref_ = unsafe { self.inner.inner_ref() };
+                let ref_ =
+                unsafe {
+                    self.inner
+                        .ref_unchecked()
+                };
                 
                 InnerArgument::new_ref(ref_)
             }
@@ -110,7 +117,8 @@ impl Deref for Argument<'_>
     #[inline(always)]
     fn deref(&self) -> &dyn Any
     {
-        self.inner.to_ref()
+        self.inner
+            .to_ref()
     }
 }
 
@@ -153,18 +161,31 @@ impl Argument<'_>
     #[inline(always)]
     pub fn to_mut(&mut self) -> &mut dyn Any
     {
-        self.inner.to_mut()
+        self.inner
+            .to_mut()
+    }
+    
+    #[inline(always)]
+    fn discriminant(&self) -> Discriminant
+    {
+        self.inner
+            .discriminant()
     }
     
     /// Clones the inner contents of the object, returning an owned argument.
     #[inline(always)]
     pub fn to_owned(&self) -> Self
     {
-        match self.inner.discriminant()
+        match self.discriminant()
         {
             Discriminant::Borrowed =>
             {
-                let ref_ = unsafe { self.inner.inner_ref() };
+                let ref_ =
+                unsafe
+                {
+                    self.inner
+                        .ref_unchecked()
+                };
                 
                 let owned = ref_.clone_object();
                 
@@ -189,9 +210,12 @@ impl Argument<'_>
     {
         match self.inner_contents()
         {
-            RawArgument::Owned(o)
-            if o.is_type::<T>()
-            => unsafe { Ok(o.downcast_owned_unchecked() ) }
+            RawArgument::Owned(owned)
+            if owned.is_type::<T>() =>
+            unsafe
+            {
+                Ok(owned.downcast_owned_unchecked())
+            }
             
             RawArgument::Owned(o)
             =>
@@ -217,7 +241,8 @@ impl Argument<'_>
     {
         debug_assert!(self.is_owned());
         
-        let RawArgument::Owned(contents) = self.inner_contents()
+        let RawArgument::Owned(contents) : OwnedArgument =
+        self.inner_contents()
         else
         {
             #[cfg(debug_assertions)]
@@ -325,7 +350,7 @@ impl<'a> Argument<'a>
         
         unsafe
         {
-            store.inner.as_argument()
+            store.inner.into_raw_argument()
         }
     }
     
@@ -340,6 +365,17 @@ impl<'a> Argument<'a>
         unsafe
         {
             raw.read().into_inner()
+        }
+    }
+}
+
+impl From<OwnedArgument> for Argument<'_>
+{
+    fn from(item: OwnedArgument) -> Self
+    {
+        Self
+        {
+            inner: InnerArgument::new_owned(item)
         }
     }
 }
