@@ -1,7 +1,7 @@
 # variadic_args
-A WIP attempt at creating variadic arguments for Rust.
+A crate that implements variadic arguments into Rust.
 
-# TODO List (For the time being.)
-    * Clean up the code.
+# TODO List
+    * Experiment with inline attributes.
     
-    * Improve code documentation.
+    * Keyword arguments.
