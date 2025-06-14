@@ -37,7 +37,6 @@ pub(super) struct Inlined
 
 impl Drop for Inlined
 {
-    #[inline(always)]
     fn drop(&mut self)
     {
         // This handles drop for a trait object.
@@ -54,7 +53,6 @@ impl Drop for Inlined
 impl Inlined
 {
     /// Creates a new inlined stroage instance.
-    #[inline]
     pub fn new<T: VariantHandle>(item: T) -> Self
     {
         let mut store = [0; INLINE_STORE];
@@ -130,7 +128,6 @@ impl Inlined
 
 unsafe impl PointerInfo for Inlined
 {
-    #[inline(never)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle
     {
         // SAFETY: Raw pointers implement copy, meaning that
@@ -146,7 +143,6 @@ unsafe impl PointerInfo for Inlined
     }
     
     
-    #[inline(never)]
     unsafe fn raw_pointer(&self) -> *mut dyn VariantHandle
     {
         // Refer to metadata for safety.

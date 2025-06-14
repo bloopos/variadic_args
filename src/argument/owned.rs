@@ -79,7 +79,6 @@ impl Clone for OwnedArgument
 
 impl Drop for OwnedArgument
 {
-    #[inline(never)]
     fn drop(&mut self)
     {
         let raw_pointer = &raw mut *self;
@@ -94,7 +93,6 @@ impl Drop for OwnedArgument
 
 unsafe impl PointerInfo for OwnedArgument
 {
-    #[inline(never)]
     unsafe fn metadata(&self) -> *mut dyn VariantHandle
     {
         // Safety: by matching discriminants, we are able to get the correct metadata.
@@ -106,7 +104,6 @@ unsafe impl PointerInfo for OwnedArgument
         }
     }
     
-    #[inline(never)]
     unsafe fn raw_pointer(&self) -> *mut dyn VariantHandle
     {
         // Safety: by matching discriminants, we are able to get the correct raw pointer.
@@ -140,7 +137,6 @@ impl OwnedArgument
     ///
     /// If the size of said item is less than 8 bytes for 64-bit systems (4 for 32-bit systems),
     /// then the storage is inlined. Otherwise, the storage gets allocated instead.
-    #[inline(always)]
     pub fn new<T>(item: T) -> Self
     where
         T: Any + Clone
@@ -210,7 +206,6 @@ impl OwnedArgument
     /// Checks if the storage is inlined or not.
     ///
     /// This is only used for testing purposes.
-    #[inline(always)]
     #[cfg(test)]
     pub(crate) fn is_inlined(&self) -> bool
     {
