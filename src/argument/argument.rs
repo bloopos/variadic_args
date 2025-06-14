@@ -99,15 +99,13 @@ impl Deref for Argument<'_>
     
     fn deref(&self) -> &dyn Any
     {
-        unsafe
-        {
-            self.inner.to_ref()
-        }
+        self.inner.to_ref()
     }
 }
 
 impl Argument<'_>
 {
+    /// Creates a new owned Argument.
     pub fn new_owned<T>(item: T) -> Self
     where
         T: Any + Clone
@@ -120,27 +118,30 @@ impl Argument<'_>
         }
     }
     
+    /// Checks if the argument is owned.
     pub fn is_owned(&self) -> bool
     {
         self.inner
             .is_owned()
     }
     
+    /// Checks if the argument is borrowed.
     pub fn is_borrowed(&self) -> bool
     {
         self.inner
             .is_borrowed()
     }
     
+    /// Returns a mutable reference to the item itself.
+    ///
+    /// If the inner contents are borrowed, this creates a new
+    /// owned instance first before returning the reference itself.
     pub fn to_mut(&mut self) -> &mut dyn Any
     {
-        unsafe
-        {
-            self.inner
-                .to_mut()
-        }
+        self.inner.to_mut()
     }
     
+    /// Clones the inner contents of the object, returning an owned argument.
     pub fn to_owned(&self) -> Self
     {
         match self.inner.discriminant()
@@ -160,6 +161,11 @@ impl Argument<'_>
         }
     }
     
+    /// Downcasts an owned argument into type T, returning a result.
+    ///
+    /// # Return values
+    /// Ok(T): The argument gets consumed and returns the inner contents.
+    /// Err(Self): Either the argument is not of type T or the argument itself is not owned.
     pub fn downcast_owned<T>(self) -> Result<T, Self>
     where
         T: Clone + Any
@@ -180,6 +186,13 @@ impl Argument<'_>
         }
     }
     
+    /// Downcasts an owned argument into type T, without any checks.
+    ///
+    /// # Safety
+    /// The argument must both be owned and of type T.
+    ///
+    /// # Panics
+    /// The function will panic if the argument itself is not owned.
     pub unsafe fn downcast_owned_unchecked<T>(self) -> T
     where
         T: Clone + Any
@@ -207,10 +220,14 @@ impl Argument<'_>
         }
     }
     
+    /// Downcasts the argument into a cloned object of type T.
+    ///
+    /// Returns None if the object's type is not T.
     pub fn downcast_cloned<T>(&self) -> Option<T>
     where
         T: Any + Clone
     {
+        #[allow(clippy::manual_map)]
         match self.downcast_ref::<T>()
         {
             Some(t) => Some(t.clone()),
@@ -218,15 +235,21 @@ impl Argument<'_>
         }
     }
     
+    /// Binding to downcasting a reference to T without checks.
+    ///
+    /// This is similar to Any::downcast_ref_unchecked, except for
+    /// the fact that we can use it outside of nightly. When the former
+    /// gets stabilized, this function will get replaced.
+    ///
+    /// # Safety
+    /// Assumes that the contents are of type T.
     unsafe fn downcast_ref_unchecked<T>(&self) -> &T
     where
         T: Any + Clone
     {
-        let binding = unsafe { self.inner.to_ref() };
-        
+        let binding = self.inner.to_ref();
         
         debug_assert!(binding.is::<T>());
-        
         
         unsafe
         {
@@ -234,6 +257,10 @@ impl Argument<'_>
         }
     }
     
+    /// Downcasts the argument into a cloned object of T without checking it first.
+    ///
+    /// # Safety
+    /// Assumes that the contents are of type T.
     pub unsafe fn downcast_cloned_unchecked<T>(&self) -> T
     where
         T: Any + Clone
@@ -247,6 +274,7 @@ impl Argument<'_>
 
 impl<'a> Argument<'a>
 {
+    /// Creates a borrowed argument of item T.
     pub fn new_borrowed<T>(item: &'a T) -> Self
     where
         T: Any + Clone
@@ -257,14 +285,16 @@ impl<'a> Argument<'a>
         }
     }
     
+    /// Creates a borrowed reference to the source argument.
     pub fn as_ref(&'a self) -> Self
     {
         Self
         {
-            inner: unsafe { self.inner.as_ref() }
+            inner: self.inner.as_ref()
         }
     }
     
+    /// Consumes the argument, returing a wrapper to the inner argument itself.
     fn inner_contents(self) -> RawArgument<'a>
     {
         let mut store = ManuallyDrop::new(self);
@@ -275,6 +305,7 @@ impl<'a> Argument<'a>
         }
     }
     
+    /// Consumes the argument itself, returning what kind of argument it is.
     pub fn into_inner(self) -> ArgumentKind<'a>
     {
         let store = ManuallyDrop::new(self);
