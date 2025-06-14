@@ -241,8 +241,7 @@ impl Argument<'_>
     {
         debug_assert!(self.is_owned());
         
-        let RawArgument::Owned(contents) : OwnedArgument =
-        self.inner_contents()
+        let RawArgument::Owned(contents) = self.inner_contents()
         else
         {
             #[cfg(debug_assertions)]
