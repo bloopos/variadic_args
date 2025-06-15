@@ -117,7 +117,8 @@ impl OwnedArgument
     {
         if size_of::<T>() <= size_of::<*const ()>()
         {
-            let mut store = mem::MaybeUninit::<*mut dyn VariantHandle>::new((&raw const item).cast_mut());
+            let mut store =
+            mem::MaybeUninit::<*mut dyn VariantHandle>::new((&raw const item).cast_mut());
 
             unsafe
             {
@@ -231,7 +232,7 @@ impl OwnedArgument
     ///
     /// This is useful for internally creating references to VariantHandle.
     #[inline(always)]
-    pub(crate) fn raw_ref<'a>(&'a self) -> &'a dyn VariantHandle
+    pub(crate) fn raw_ref(&self) -> &dyn VariantHandle
     {
         unsafe
         {

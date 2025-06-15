@@ -43,14 +43,6 @@ impl Inlined
         self.contents
     }
 
-
-    #[inline(always)]
-    pub fn storage(&self) -> *const u8
-    {
-        (&raw const self.contents).cast()
-    }
-
-
     #[inline(always)]
     pub fn pointer(&self) -> NonNull<dyn VariantHandle>
     {
@@ -63,9 +55,7 @@ impl Inlined
         let pointer =
         if size_of_val(unsafe { &*metadata }) > 0
         {
-            let address =
-            self.storage()
-            .addr();
+            let address = (&raw const self.contents).addr();
 
             metadata.with_addr(address)
         }

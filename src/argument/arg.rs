@@ -65,7 +65,7 @@ impl Drop for Argument<'_>
     #[inline(always)]
     fn drop(&mut self)
     {
-        let _ = unsafe { self.inner.into_raw_argument() };
+        let _ = unsafe { self.inner.take_raw_argument() };
     }
 }
 
@@ -349,7 +349,7 @@ impl<'a> Argument<'a>
         
         unsafe
         {
-            store.inner.into_raw_argument()
+            store.inner.take_raw_argument()
         }
     }
     

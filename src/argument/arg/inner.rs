@@ -167,7 +167,7 @@ impl<'a> InnerArgument<'a>
     /// but the function should be called once.
     #[must_use = "Potential memory leak."]
     #[inline(always)]
-    pub unsafe fn into_raw_argument(&mut self) -> RawArgument<'a>
+    pub unsafe fn take_raw_argument(&mut self) -> RawArgument<'a>
     {
         match self.discriminant()
         {
