@@ -4,6 +4,12 @@ use core::fmt::Debug;
 use core::any::Any;
 use core::ops::Deref;
 
+#[cfg(no_std)]
+use alloc::{
+    boxed::Box,
+    vec
+};
+
 fn test_borrowed<T>(item: &T)
 where
     T: Any + Clone + Eq + Debug

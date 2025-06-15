@@ -3,6 +3,13 @@ use crate::OwnedArgument;
 use core::sync::atomic::{AtomicU8, Ordering};
 use core::any::Any;
 
+#[cfg(no_std)]
+use alloc::{
+    boxed::Box,
+    vec,
+     vec::Vec
+};
+
 fn
 test_owned<T>(item: T)
 where
