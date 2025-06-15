@@ -1,10 +1,12 @@
 [package]
 name = "variadic_arguments"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Implements variadic arguments into Rust."
 repository = "https://github.com/bloopos/variadic_args"
 license = "MIT"
+categories = ["no-std"]
+keywords = ["variadic"]
 readme = "README.md"
 
 [dependencies]
