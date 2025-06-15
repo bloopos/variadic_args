@@ -19,7 +19,9 @@ pub enum ErrorKind
     NonASCIIKey,
     InvalidKeyName,
     EmptyKey,
-    KeyExists
+    KeyExists,
+    KeyDoesNotExist,
+    MaxArguments
 }
 
 pub struct Error<T>
@@ -90,7 +92,9 @@ impl<T> fmt::Display for Error<T>
             ErrorKind::EmptyKey => write!(f, "The key provided is empty!"),
             ErrorKind::KeyExists => write!(f, "Key {} already exists!", key),
             ErrorKind::NonASCIIKey => write!(f, "The key provided, {}, has invalid ASCII bytes!", key),
-            ErrorKind::InvalidKeyName => write!(f, "The key provided, {}, is not a valid key identifier!", key)
+            ErrorKind::InvalidKeyName => write!(f, "The key provided, {}, is not a valid key identifier!", key),
+            ErrorKind::MaxArguments => write!(f, "The keyword arguments builder has already reached the maximum argument count!"),
+            ErrorKind::KeyDoesNotExist => write!(f, "The keyword arguments does not contain the provided key, {}.", key)
         }
     }
 }

@@ -3,6 +3,7 @@ use smartstring::{SmartString, LazyCompact};
 mod keyed_args;
 mod error;
 mod builder;
+mod key_ident;
 
 pub type Key = SmartString<LazyCompact>;
 
