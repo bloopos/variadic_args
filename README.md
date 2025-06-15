@@ -7,7 +7,6 @@ A crate that implements variadic arguments into Rust.
 &nbsp;
 
 ## Features
----
 - Each argument item supports storing any generic, so long as it implements `Any + Clone`.
 	- `OwnedArgument` stores an owned variant. For smaller types, it uses inline storage instead.
 	- `Argument` follows Copy-on-Write behavior, which enables borrowing variants.
@@ -18,14 +17,12 @@ A crate that implements variadic arguments into Rust.
 &nbsp;
 
 ## Known Issues
----
 - Big endian has not been tested yet.
 - The documentation is not finished.
 
 &nbsp;
 
 ## Todo List
----
 - Improve documentation.
 - Keyword arguments.
 - Send-sync support.
