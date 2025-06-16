@@ -1,15 +1,22 @@
-use super::{Error, ErrorKind, Key, key_ident::validate_key};
+use super::{Error, ErrorKind, Key, key_ident::validate_key, keyed_args::KeywordArguments};
 use crate::MAX_ARG_COUNT;
 
 #[cfg(no_std)]
-use alloc::vec::Vec;
+use alloc::collections::{
+    BTreeMap,
+    btree_map::{Iter, Keys}
+};
 
 #[cfg(no_std)]
 use core::any::Any;
 
 #[cfg(not(no_std))]
 use std::{
-    any::Any
+    any::Any,
+    collections::{
+        BTreeMap,
+        btree_map::{Iter, Keys}
+    }
 };
 
 use crate::Argument;
@@ -70,11 +77,12 @@ impl KeywordArgumentsBuilder<'_>
         Ok((key, value))
     }
 
-    pub fn insert_owned<T>(&mut self, key: Key, value: T) -> Result<(), Error<T>>
+    pub fn insert_owned<K, T>(&mut self, key: K, value: T) -> Result<(), Error<T>>
     where
+        K: Into<Key>,
         T: Any + Clone
     {
-        let (key, val) = self.validate_key(key, value)?;
+        let (key, val) = self.validate_key(key.into(), value)?;
 
         let value = Argument::new_owned(val);
 
@@ -84,6 +92,11 @@ impl KeywordArgumentsBuilder<'_>
         }
 
         Ok(())
+    }
+
+    pub fn keys(&self) -> Keys<'_, Key, Argument<'_>>
+    {
+        self.table.keys()
     }
 }
 
@@ -110,5 +123,44 @@ impl<'a> KeywordArgumentsBuilder<'a>
             Some(v) => Ok(v),
             None => Err(ErrorKind::KeyDoesNotExist)
         }
+    }
+
+    pub fn insert_borrowed<K, T>(&mut self, key: K, value: &'a T) -> Result<(), Error<()>>
+    where
+        K: Into<Key>,
+        T: Any + Clone
+    {
+        let (key, _) = self.validate_key(key.into(), ())?;
+
+        unsafe
+        {
+            self.insert_raw_unchecked(key, Argument::new_borrowed(value));
+        }
+
+        Ok(())
+    }
+
+    pub fn insert_argument<K>(&mut self, key: K, arg: Argument<'a>) -> Result<(), Error<Argument<'a>>>
+    where
+        K: Into<Key>
+    {
+        let (key, value) = self.validate_key(key.into(), arg)?;
+
+        unsafe
+        {
+            self.insert_raw_unchecked(key, value);
+        }
+
+        Ok(())
+    }
+
+    pub fn iter(&self) -> Iter<'_, Key, Argument<'a>>
+    {
+        self.table.iter()
+    }
+
+    pub fn build(self) -> KeywordArguments<'a>
+    {
+        KeywordArguments::from_builder(self.table)
     }
 }
